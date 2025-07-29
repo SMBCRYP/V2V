@@ -1,80 +1,111 @@
 import requests
 import base64
-from typing import List, Set
+import json
+from urllib.parse import urlparse, parse_qs
+from typing import List, Set, Dict, Any
 
-# A curated list of raw text and subscription link sources
 SOURCES = [
-    # Barry-far Subs
+    # Add your list of subscription links here
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub4.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub5.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt",
-    # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
-    # youfoundamin
     "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
-    # MatinGhanbari
     "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt",
-    # V2rayCollector by mrvcoder
     "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64",
 ]
 
-OUTPUT_FILE = 'configs.txt'
-VALID_PREFIXES = ('vless://', 'vmess://', 'trojan://', 'ss://')
+OUTPUT_FILE = 'configs.json' # Changed to JSON
+VALID_PREFIXES = ('vless://', 'vmess://', 'trojan://')
 
+# Cache for server info to avoid repeated API calls
+server_info_cache: Dict[str, Dict[str, Any]] = {}
 
-def get_content_from_url(url: str):
-    """Fetches content from a URL."""
+def get_server_info(address: str) -> Dict[str, Any]:
+    """Fetches location and ISP info for a server address using a free API."""
+    ip = address.split(':')[0]
+    if ip in server_info_cache:
+        return server_info_cache[ip]
+    
+    # Using a free, no-key-required GeoIP API
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp", timeout=5)
         response.raise_for_status()
-        return response.text
-    except requests.RequestException as e:
-        print(f"Could not fetch {url}: {e}")
+        data = response.json()
+        if data.get('status') == 'success':
+            info = {
+                'country': data.get('country', 'Unknown'),
+                'country_code': data.get('countryCode', ''),
+                'isp': data.get('isp', 'Unknown')
+            }
+            server_info_cache[ip] = info
+            return info
+    except Exception as e:
+        print(f"GeoIP lookup failed for {ip}: {e}")
+    
+    # Return default info on failure
+    return {'country': 'Unknown', 'country_code': '', 'isp': 'Unknown'}
+
+def parse_config(uri: str) -> Dict[str, Any] | None:
+    """Parses a V2Ray URI and extracts its details."""
+    try:
+        if not uri.startswith(VALID_PREFIXES):
+            return None
+
+        parsed_uri = urlparse(uri)
+        protocol = parsed_uri.scheme
+        address = parsed_uri.hostname or ''
+        port = parsed_uri.port or 0
+        remarks = parsed_uri.fragment or 'Config'
+        
+        # Get server location and ISP
+        server_info = get_server_info(address)
+
+        return {
+            'protocol': protocol,
+            'address': address,
+            'port': port,
+            'remarks': remarks.strip(),
+            'country': server_info['country'],
+            'country_code': server_info['country_code'].lower(),
+            'isp': server_info['isp'],
+            'config_str': uri
+        }
+    except Exception:
         return None
 
-
-def decode_content(content: str) -> List[str]:
-    """Decodes content (tries base64 first, then falls back to plain text)."""
-    try:
-        decoded_bytes = base64.b64decode(content)
-        return decoded_bytes.decode('utf-8').strip().split('\n')
-    except (ValueError, TypeError, base64.binascii.Error):
-        return content.strip().split('\n')
-
-
 def main():
-    """
-    Main function to fetch, process, and save all configs.
-    """
+    """Main function to fetch, process, and save all configs."""
     all_configs: Set[str] = set()
-    total_sources = len(SOURCES)
+    print(f"Processing {len(SOURCES)} sources...")
+
+    for url in SOURCES:
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            content = response.text
+            
+            # Try decoding from base64, fall back to plain text
+            try:
+                decoded = base64.b64decode(content).decode('utf-8')
+                all_configs.update(decoded.strip().split('\n'))
+            except Exception:
+                all_configs.update(content.strip().split('\n'))
+        except requests.RequestException as e:
+            print(f"Could not fetch {url}: {e}")
+
+    parsed_configs: List[Dict[str, Any]] = []
+    print(f"Found {len(all_configs)} total configs, parsing and analyzing...")
+
+    for uri in all_configs:
+        if parsed_data := parse_config(uri):
+            parsed_configs.append(parsed_data)
     
-    print(f"Starting to process {total_sources} sources...")
+    print(f"Successfully parsed {len(parsed_configs)} valid configs.")
 
-    for i, url in enumerate(SOURCES):
-        print(f"[{i+1}/{total_sources}] Processing: {url}")
-        content = get_content_from_url(url)
-        if content:
-            configs = decode_content(content)
-            for config in configs:
-                if config and config.startswith(VALID_PREFIXES):
-                    all_configs.add(config)
-
-    print(f"\nFound a total of {len(all_configs)} unique configs.")
-
-    try:
-        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            for config in sorted(list(all_configs)):
-                f.write(config + '\n')
-        print(f"Successfully saved all configs to {OUTPUT_FILE}")
-    except IOError as e:
-        print(f"Error writing to file: {e}")
-
+    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        json.dump(parsed_configs, f, indent=2, ensure_ascii=False)
+    
+    print(f"Saved configs to {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
