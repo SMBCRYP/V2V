@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2V Configs</title>
+    <meta name="description" content="دسترسی سریع و هوشمند به کانفیگ‌های V2Ray">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1c1c1c">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --primary-color: #2a2a2a;
+            --secondary-color: #404040;
+            --text-color: #e0e0e0;
+            --accent-color: #4caf50;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container { max-width: 800px; width: 100%; }
+        h1 { text-align: center; color: var(--accent-color); }
+        .main-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.2s;
+        }
+        .main-btn:hover { background-color: #45a049; }
+        .config-item {
+            background-color: var(--primary-color);
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .config-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1;
+            margin-left: 10px;
+            direction: ltr;
+            text-align: left;
+        }
+        .btn-group button {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 8px 12px;
+            margin-left: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #results { margin-bottom: 2rem; }
+        #qr-modal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center;
+        }
+        #qr-code-container { background-color: white; padding: 20px; border-radius: 8px; }
+        footer { margin-top: 2rem; font-size: 0.8rem; color: #777; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>V2V Configs</h1>
+        <button id="scan-btn" class="main-btn">🚀 دریافت کانفیگ هوشمند</button>
+        <div id="results"></div>
+        <hr>
+        <h2>لیست کامل کانفیگ‌ها</h2>
+        <div id="config-list"></div>
+        <footer>
+            <p id="status">در حال بارگذاری...</p>
+        </footer>
+    </div>
+
+    <div id="qr-modal">
+        <div id="qr-code-container"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/V2V/sw.js') // Important: Change '/V2V/' to your repository name
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+        
+        const scanBtn = document.getElementById('scan-btn');
+        const resultsDiv = document.getElementById('results');
+        const configListDiv = document.getElementById('config-list');
+        const statusEl = document.getElementById('status');
+        const qrModal = document.getElementById('qr-modal');
+        const qrCodeContainer = document.getElementById('qr-code-container');
+        
+        let allConfigs = [];
+
+        async function fetchConfigs() {
+            try {
+                const response = await fetch('configs.txt');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const text = await response.text();
+                allConfigs = text.trim().split('\n').filter(c => c.length > 10);
+                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ بارگذاری شد.`;
+                renderFullList();
+            } catch (error) {
+                statusEl.textContent = 'خطا در بارگذاری کانفیگ‌ها. لطفاً از حالت آفلاین استفاده کنید.';
+                console.error('Fetch error:', error);
+            }
+        }
+
+        function createConfigElement(config) {
+            const item = document.createElement('div');
+            item.className = 'config-item';
+
+            const text = document.createElement('div');
+            text.className = 'config-text';
+            text.textContent = config;
+
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'کپی';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(config);
+                copyBtn.textContent = 'کپی شد!';
+                setTimeout(() => { copyBtn.textContent = 'کپی'; }, 2000);
+            };
+
+            const qrBtn = document.createElement('button');
+            qrBtn.textContent = 'QR';
+            qrBtn.onclick = () => showQrCode(config);
+            
+            btnGroup.appendChild(copyBtn);
+            btnGroup.appendChild(qrBtn);
+            item.appendChild(text);
+            item.appendChild(btnGroup);
+            return item;
+        }
+
+        function renderFullList() {
+            configListDiv.innerHTML = '';
+            allConfigs.forEach(config => {
+                configListDiv.appendChild(createConfigElement(config));
+            });
+        }
+        
+        function showQrCode(config) {
+            qrCodeContainer.innerHTML = '';
+            new QRCode(qrCodeContainer, {
+                text: config,
+                width: 256,
+                height: 256,
+            });
+            qrModal.style.display = 'flex';
+        }
+
+        scanBtn.addEventListener('click', () => {
+            resultsDiv.innerHTML = '';
+            if (allConfigs.length === 0) {
+                alert('کانفیگی برای پیشنهاد یافت نشد. لطفاً منتظر بمانید تا لیست بارگذاری شود.');
+                return;
+            }
+            const count = Math.min(5, allConfigs.length);
+            const shuffled = [...allConfigs].sort(() => 0.5 - Math.random());
+            const selected = shuffled.slice(0, count);
+            
+            selected.forEach(config => {
+                resultsDiv.appendChild(createConfigElement(config));
+            });
+        });
+        
+        qrModal.addEventListener('click', (e) => {
+            if (e.target === qrModal) {
+                qrModal.style.display = 'none';
+            }
+        });
+
+        fetchConfigs();
+    </script>
+</body>
+</html>
