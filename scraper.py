@@ -1,7 +1,7 @@
 import requests
 import base64
 import json
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 from typing import List, Set, Dict, Any
 
 SOURCES = [
@@ -14,7 +14,7 @@ SOURCES = [
     "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64",
 ]
 
-OUTPUT_FILE = 'configs.json' # Changed to JSON
+OUTPUT_FILE = 'configs.json'
 VALID_PREFIXES = ('vless://', 'vmess://', 'trojan://')
 
 # Cache for server info to avoid repeated API calls
@@ -26,7 +26,6 @@ def get_server_info(address: str) -> Dict[str, Any]:
     if ip in server_info_cache:
         return server_info_cache[ip]
     
-    # Using a free, no-key-required GeoIP API
     try:
         response = requests.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp", timeout=5)
         response.raise_for_status()
@@ -42,10 +41,9 @@ def get_server_info(address: str) -> Dict[str, Any]:
     except Exception as e:
         print(f"GeoIP lookup failed for {ip}: {e}")
     
-    # Return default info on failure
     return {'country': 'Unknown', 'country_code': '', 'isp': 'Unknown'}
 
-def parse_config(uri: str) -> Dict[str, Any] | None:
+def parse_config(uri: str):
     """Parses a V2Ray URI and extracts its details."""
     try:
         if not uri.startswith(VALID_PREFIXES):
@@ -57,7 +55,6 @@ def parse_config(uri: str) -> Dict[str, Any] | None:
         port = parsed_uri.port or 0
         remarks = parsed_uri.fragment or 'Config'
         
-        # Get server location and ISP
         server_info = get_server_info(address)
 
         return {
@@ -84,7 +81,6 @@ def main():
             response.raise_for_status()
             content = response.text
             
-            # Try decoding from base64, fall back to plain text
             try:
                 decoded = base64.b64decode(content).decode('utf-8')
                 all_configs.update(decoded.strip().split('\n'))
@@ -97,7 +93,8 @@ def main():
     print(f"Found {len(all_configs)} total configs, parsing and analyzing...")
 
     for uri in all_configs:
-        if parsed_data := parse_config(uri):
+        parsed_data = parse_config(uri)
+        if parsed_data:
             parsed_configs.append(parsed_data)
     
     print(f"Successfully parsed {len(parsed_configs)} valid configs.")
