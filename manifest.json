@@ -1,0 +1,21 @@
+{
+  "name": "V2V Configs",
+  "short_name": "V2V",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#1c1c1c",
+  "description": "Smart V2Ray Config Access",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/github/explore/80688e429a7d40f836591846a32a55310edaexplore/topics/v2ray/v2ray.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/github/explore/80688e429a7d40f836591846a32a55310edaexplore/topics/v2ray/v2ray.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
