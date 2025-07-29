@@ -27,7 +27,7 @@ OUTPUT_FILE = 'configs.txt'
 VALID_PREFIXES = ('vless://', 'vmess://', 'trojan://', 'ss://')
 
 
-def get_content_from_url(url: str) -> str | None:
+def get_content_from_url(url: str):
     """Fetches content from a URL."""
     try:
         response = requests.get(url, timeout=10)
@@ -53,7 +53,7 @@ def main():
     """
     all_configs: Set[str] = set()
     total_sources = len(SOURCES)
-
+    
     print(f"Starting to process {total_sources} sources...")
 
     for i, url in enumerate(SOURCES):
