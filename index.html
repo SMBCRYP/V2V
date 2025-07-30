@@ -3,129 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V2V Configs</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1c1c1c">
+    <title>جمع‌آوری و تست کانفیگ</title>
     <style>
-        :root {
-            --bg-color: #121212; --primary-color: #1e1e1e; --secondary-color: #2a2a2a;
-            --text-color: #e0e0e0; --subtle-text-color: #888; --accent-color: #009688;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
         }
-        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 1rem; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { text-align: center; border-bottom: 1px solid var(--secondary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
-        .header h1 { color: var(--accent-color); margin: 0; }
-        .main-btn { background-color: var(--accent-color); color: white; border: none; padding: 15px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
-        .main-btn .spinner { display: none; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .card { background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem; border-left: 4px solid var(--secondary-color); }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .card-location { display: flex; align-items: center; font-weight: bold; }
-        .card-location .fi { font-size: 1.5rem; margin-left: 10px; }
-        .ping { font-weight: bold; }
-        .ping.fast { color: #4caf50; } .ping.medium { color: #ff9800; } .ping.slow { color: #f44336; }
-        .card-details { font-size: 0.85rem; color: var(--subtle-text-color); }
-        .use-case { font-size: 0.8rem; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--secondary-color); }
-        .card-footer { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
-        .card-footer button { background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #1a1a1a;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: block;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        pre {
+            background-color: #fafafa;
+            border: 1px solid #eaeaea;
+            border-radius: 6px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+            font-size: 14px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        #status {
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
     </style>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css"/>
 </head>
 <body>
+
     <div class="container">
-        <div class="header"><h1>V2V Configs</h1><p id="status">در حال بارگذاری اولیه...</p></div>
-        <button id="scan-btn" class="main-btn"><span>🔄 تست مجدد</span><div class="spinner"></div></button>
-        <div id="results-container"></div>
+        <h1>جمع‌آوری کانفیگ از منابع</h1>
+        <p>
+            با کلیک روی دکمه زیر، کانفیگ‌ها از تمام منابع لیست شده جمع‌آوری، موارد تکراری حذف و نتیجه نهایی از طریق پروکسی نمایش داده می‌شود.
+        </p>
+
+        <button id="fetchButton">شروع جمع‌آوری و نمایش کانفیگ‌ها</button>
+
+        <div id="status">وضعیت: آماده</div>
+        
+        <h2>نتیجه نهایی:</h2>
+        <pre id="result">هنوز درخواستی ارسال نشده است.</pre>
+
+        <h2>لیست منابع استفاده شده:</h2>
+        <pre id="sources-list"></pre>
     </div>
+
     <script>
-        const scanBtn = document.getElementById('scan-btn');
-        const resultsContainer = document.getElementById('results-container');
-        const statusEl = document.getElementById('status');
-        let allConfigs = [];
+        const fetchButton = document.getElementById('fetchButton');
+        const resultContainer = document.getElementById('result');
+        const statusContainer = document.getElementById('status');
+        const sourcesListContainer = document.getElementById('sources-list');
+
+        // لیست کامل منابع که از مکالمه قبلی استخراج شد
+        const sources = [
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub2.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub3.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub4.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub6.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub7.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub8.txt",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
+            "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
+            "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
+            "https://raw.githubusercontent.com/MrPooyaX/V2Ray/main/sub/mix",
+            "https://raw.githubusercontent.com/yebekhe/Configura/main/Sub/Normal/Sub.txt",
+            "https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64",
+            "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64"
+        ];
         
-        // --- YOUR PERSONAL PROXY URL IS NOW SET ---
-        const PROXY_URL = "wss://rapid-scene-1da6.mbrgh87.workers.dev/";
-        
-        function getUseCase(ping) {
-            if (ping < 250) return '🎮 عالی برای: گیم و وب‌گردی';
-            if (ping < 500) return '🎬 مناسب برای: استریم و شبکه‌های اجتماعی';
-            return '📁 مناسب برای: دانلود';
-        }
+        // نمایش لیست منابع در صفحه
+        sourcesListContainer.textContent = sources.join('\\n');
 
-        function pingOnce(config) {
-            return new Promise(resolve => {
-                const startTime = Date.now();
-                const timeoutDuration = 3000;
-                let ws;
-                try {
-                    ws = new WebSocket(PROXY_URL);
-                    ws.onopen = () => ws.send(JSON.stringify({ address: config.address, port: config.port }));
-                    ws.onmessage = (event) => { if (event.data === "success") succeed(); else fail(); };
-                } catch (e) { fail(); return; }
-                const timeout = setTimeout(fail, timeoutDuration);
-                function succeed() { clearTimeout(timeout); ws.close(); resolve(Date.now() - startTime); }
-                function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(null); }
-                ws.onerror = fail;
-            });
-        }
-
-        function createConfigCard(config) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            const pingClass = config.ping < 400 ? 'fast' : (config.ping < 800 ? 'medium' : 'slow');
-            card.style.borderColor = `var(--${pingClass})`;
-            const useCaseText = getUseCase(config.ping);
-            card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${config.ping}ms</div></div><div class="card-details"><strong>${config.remarks}</strong></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button onclick="copyConfig('${config.config_str}')">کپی</button></div>`;
-            return card;
-        }
-        
-        function copyConfig(configStr) { navigator.clipboard.writeText(configStr); alert('کپی شد!'); }
-
-        function renderList(configs) {
-            resultsContainer.innerHTML = '';
-            if (configs.length === 0) { statusEl.textContent = 'هیچ کانفیگ آنلاینی یافت نشد.'; return; }
-            configs.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
-            statusEl.textContent = `نمایش ${configs.length} کانفیگ آنلاین`;
-        }
-        
-        async function runFullScan() {
-            if (!allConfigs.length) { statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.'; return; }
-            const btnUI = scanBtn.querySelector('span');
-            const spinner = scanBtn.querySelector('.spinner');
-            scanBtn.disabled = true;
-            btnUI.textContent = 'در حال تست...';
-            spinner.style.display = 'inline-block';
-            resultsContainer.innerHTML = '';
-
-            const testPromises = allConfigs.map(config => pingOnce(config));
-            const results = await Promise.all(testPromises);
-            
-            const onlineConfigs = allConfigs
-                .map((config, i) => ({ ...config, ping: results[i] }))
-                .filter(r => r.ping !== null)
-                .sort((a, b) => a.ping - b.ping);
-
-            renderList(onlineConfigs);
-
-            scanBtn.disabled = false;
-            btnUI.textContent = '🔄 تست مجدد';
-            spinner.style.display = 'none';
-        }
-
-        async function init() {
+        async function fetchFromSource(url) {
             try {
-                const response = await fetch('configs.json?v=' + Date.now());
-                if (!response.ok) throw new Error('Network error');
-                allConfigs = await response.json();
-                if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
-                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست...`;
-                runFullScan();
+                // مهم: ما از پروکسی خودمان برای عبور از محدودیت CORS استفاده می‌کنیم
+                // آدرس به /api/ ختم می‌شود تا Vercel آن را به پروکسی ما هدایت کند
+                const proxyUrl = `/api/?url=${encodeURIComponent(url)}`;
+                const response = await fetch(proxyUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch from ${url}`);
+                }
+                const text = await response.text();
+                // دیکد کردن محتوای Base64 در صورت نیاز
+                try {
+                    return atob(text).split('\\n');
+                } catch (e) {
+                    return text.split('\\n');
+                }
             } catch (error) {
-                statusEl.textContent = 'خطا در بارگذاری اولیه. لطفاً صفحه را رفرش کنید.';
+                console.error(`Error fetching ${url}:`, error);
+                return []; // در صورت خطا، یک آرایه خالی برمی‌گردانیم
             }
         }
-        scanBtn.addEventListener('click', runFullScan);
-        init();
+
+        fetchButton.addEventListener('click', async () => {
+            fetchButton.disabled = true;
+            fetchButton.textContent = 'در حال پردازش...';
+            statusContainer.textContent = 'شروع فرآیند...';
+            
+            const allConfigs = new Set();
+            
+            for (let i = 0; i < sources.length; i++) {
+                const url = sources[i];
+                statusContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}: ${url}`;
+                const configs = await fetchFromSource(url);
+                configs.forEach(config => {
+                    if (config.trim()) {
+                        allConfigs.add(config.trim());
+                    }
+                });
+            }
+
+            statusContainer.textContent = `پردازش تمام شد. تعداد ${allConfigs.size} کانفیگ یکتا پیدا شد.`;
+            resultContainer.textContent = Array.from(allConfigs).join('\\n');
+            
+            fetchButton.disabled = false;
+            fetchButton.textContent = 'شروع مجدد جمع‌آوری';
+        });
     </script>
+
 </body>
 </html>
