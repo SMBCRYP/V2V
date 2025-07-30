@@ -95,15 +95,19 @@
                 const startTime = Date.now();
                 const timeoutDuration = 2500;
                 let ws;
-                if (useProxy) {
-                    ws = new WebSocket("wss://proxy.yebekhe.link");
-                    ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
-                    ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
-                } else {
-                    ws = new WebSocket(`wss://${config.address}:${config.port}`);
-                    ws.onopen = succeed;
-                }
+                try {
+                    if (useProxy) {
+                        ws = new WebSocket("wss://proxy.yebekhe.link");
+                        ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
+                        ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
+                    } else {
+                        ws = new WebSocket(`wss://${config.address}:${config.port}`);
+                        ws.onopen = succeed;
+                    }
+                } catch (e) { fail('Error'); return; }
+
                 const timeout = setTimeout(() => fail('Timeout'), timeoutDuration);
+
                 function succeed() {
                     const latency = Date.now() - startTime;
                     clearTimeout(timeout);
@@ -112,7 +116,7 @@
                 }
                 function fail(errorType) {
                     clearTimeout(timeout);
-                    ws.close();
+                    if (ws) ws.close();
                     if (!useProxy) { resolve(pingOnce(config, true)); } 
                     else { resolve(errorType); }
                 }
@@ -130,69 +134,31 @@
         }
 
         function createConfigCard(config) {
-            const card = document.createElement('div');
-            card.className = 'card';
-            let pingClass = '', pingText = 'تست نشده';
-            if (typeof config.ping === 'number') {
-                pingText = `${config.ping}ms`;
-                if (config.ping < 400) pingClass = 'fast';
-                else if (config.ping < 800) pingClass = 'medium';
-                else pingClass = 'slow';
-            } else if (config.ping) {
-                pingText = config.ping;
-                pingClass = 'slow';
-            }
-            card.style.borderColor = pingClass ? `var(--${pingClass})` : 'var(--secondary-color)';
-            const useCaseText = getUseCase(config.ping);
-            card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${pingText}</div></div><div class="card-details"><strong>${config.remarks}</strong><br><small>ISP: ${config.isp} | Port: ${config.port}</small></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button class="qr-btn">QR</button><button class="copy-btn">کپی</button></div>`;
-            card.querySelector('.copy-btn').onclick = e => { const btn = e.target; navigator.clipboard.writeText(config.config_str); btn.textContent = 'کپی شد!'; setTimeout(() => { btn.textContent = 'کپی'; }, 2000); };
-            card.querySelector('.qr-btn').onclick = () => { qrCodeContainer.innerHTML = ''; new QRCode(qrCodeContainer, { text: config.config_str, width: 256, height: 256 }); qrModal.style.display = 'flex'; };
-            return card;
-        }
-
-        function renderFullList(configs) {
-             fullListContainer.innerHTML = '';
-             configs.forEach(config => fullListContainer.appendChild(createConfigCard(config)));
-        }
-        
-        scanBtn.addEventListener('click', async () => {
-            if (!allConfigs.length) return;
-            const btnText = scanBtn.querySelector('span');
-            const spinner = scanBtn.querySelector('.spinner');
-            scanBtn.disabled = true;
-            btnText.textContent = 'در حال تست ۱۰ کانفیگ تصادفی...';
-            spinner.style.display = 'inline-block';
-            resultsContainer.innerHTML = '';
-            const shuffled = [...allConfigs].sort(() => 0.5 - Math.random());
-            const selection = shuffled.slice(0, 10);
-            const testPromises = selection.map(config => getAverageLatency(config));
-            const results = await Promise.all(testPromises);
-            results.sort((a, b) => {
-                const aPing = typeof a.ping === 'number' ? a.ping : Infinity;
-                const bPing = typeof b.ping === 'number' ? b.ping : Infinity;
-                return aPing - bPing;
-            });
-            results.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
-            scanBtn.disabled = false;
-            btnText.textContent = '🚀 تست و یافتن بهترین کانفیگ';
-            spinner.style.display = 'none';
-        });
-        
-        qrModal.addEventListener('click', e => (e.target === qrModal) && (qrModal.style.display = 'none'));
-
-        async function init() {
+            // --- ULTRA-ROBUST CHECK ---
             try {
-                // --- ANTI-CACHE TRICK ---
-                const response = await fetch('configs.json?v=' + Date.now());
-                if (!response.ok) throw new Error('Network error');
-                allConfigs = await response.json();
-                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ آماده است.`;
-                renderFullList(allConfigs);
+                const card = document.createElement('div');
+                card.className = 'card';
+                let pingClass = '', pingText = 'تست نشده';
+                if (typeof config.ping === 'number') {
+                    pingText = `${config.ping}ms`;
+                    if (config.ping < 400) pingClass = 'fast';
+                    else if (config.ping < 800) pingClass = 'medium';
+                    else pingClass = 'slow';
+                } else if (config.ping) {
+                    pingText = config.ping;
+                    pingClass = 'slow';
+                }
+                card.style.borderColor = pingClass ? `var(--${pingClass})` : 'var(--secondary-color)';
+                const useCaseText = getUseCase(config.ping);
+                card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${pingText}</div></div><div class="card-details"><strong>${config.remarks}</strong><br><small>ISP: ${config.isp} | Port: ${config.port}</small></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button class="qr-btn">QR</button><button class="copy-btn">کپی</button></div>`;
+                card.querySelector('.copy-btn').onclick = e => { const btn = e.target; navigator.clipboard.writeText(config.config_str); btn.textContent = 'کپی شد!'; setTimeout(() => { btn.textContent = 'کپی'; }, 2000); };
+                card.querySelector('.qr-btn').onclick = () => { qrCodeContainer.innerHTML = ''; new QRCode(qrCodeContainer, { text: config.config_str, width: 256, height: 256 }); qrModal.style.display = 'flex'; };
+                return card;
             } catch (error) {
-                statusEl.textContent = 'خطا در بارگذاری. ممکن است از نسخه آفلاین استفاده کنید.';
+                console.error("Failed to create card for config:", config, error);
+                return null; // Return null for problematic configs
             }
         }
-        init();
-    </script>
-</body>
-</html>
+
+        function renderList(container, configs) {
+            container.innerHTML =
