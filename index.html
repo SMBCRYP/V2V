@@ -92,8 +92,10 @@
         const statusContainer = document.getElementById('status');
         const sourcesListContainer = document.getElementById('sources-list');
 
-        // لیست کامل منابع که از مکالمه قبلی استخراج شد
         const sources = [
+            // منبع جدید اضافه شده
+            "https://raw.githubusercontent.com/NiREvil/vless/main/vless.txt",
+            // منابع قبلی
             "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt",
             "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub2.txt",
             "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub3.txt",
@@ -110,20 +112,16 @@
             "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64"
         ];
         
-        // نمایش لیست منابع در صفحه
         sourcesListContainer.textContent = sources.join('\\n');
 
         async function fetchFromSource(url) {
             try {
-                // مهم: ما از پروکسی خودمان برای عبور از محدودیت CORS استفاده می‌کنیم
-                // آدرس به /api/ ختم می‌شود تا Vercel آن را به پروکسی ما هدایت کند
                 const proxyUrl = `/api/?url=${encodeURIComponent(url)}`;
                 const response = await fetch(proxyUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to fetch from ${url}`);
                 }
                 const text = await response.text();
-                // دیکد کردن محتوای Base64 در صورت نیاز
                 try {
                     return atob(text).split('\\n');
                 } catch (e) {
@@ -131,7 +129,7 @@
                 }
             } catch (error) {
                 console.error(`Error fetching ${url}:`, error);
-                return []; // در صورت خطا، یک آرایه خالی برمی‌گردانیم
+                return [];
             }
         }
 
