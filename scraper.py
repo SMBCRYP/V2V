@@ -4,9 +4,7 @@ import json
 from urllib.parse import urlparse
 from typing import List, Set, Dict, Any
 
-# --- User's full list of usable sources ---
 SOURCES = [
-    # barry-far
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt",
@@ -15,21 +13,8 @@ SOURCES = [
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt",
-
-    # Epodonios
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vmess.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vless.txt",
-    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/trojan.txt",
-
-    # youfoundamin
-    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/vmess_iran.txt",
-    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/ss_iran.txt",
-    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/trojan_iran.txt",
-    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/vless_iran.txt",
     "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
-
-    # Other reliable sources from the list
     "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt",
     "https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64",
     "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64",
@@ -71,9 +56,7 @@ def main():
         except Exception as e:
             print(f"Could not process source {url}: {e}")
             continue
-            
     parsed_configs = [p for uri in all_configs if (p := parse_config(uri))]
-    
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(parsed_configs, f, indent=2, ensure_ascii=False)
 
