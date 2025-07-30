@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v2v-cache-v2'; // Cache version updated
+const CACHE_NAME = 'v2v-cache-v3'; // Cache version updated
 const urlsToCache = [
   '.',
   'index.html',
@@ -10,42 +10,28 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
 self.addEventListener('fetch', event => {
+  // For configs.json, always fetch from network to get the latest version.
+  if (event.request.url.includes('configs.json')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For other files, use cache-first strategy.
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-
-        // Not in cache - fetch from network
-        return fetch(event.request).then(
-          networkResponse => {
-            if(!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-            
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return networkResponse;
-          }
-        );
+        return response || fetch(event.request);
       })
   );
 });
 
-// Clean up old caches
+// Clean up old caches on activation
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
