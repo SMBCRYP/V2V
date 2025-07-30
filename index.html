@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V2V Configs v3</title>
+    <title>V2V Configs v4</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1c1c1c">
     <style>
@@ -12,214 +12,90 @@
             --text-color: #e0e0e0; --subtle-text-color: #888; --accent-color: #009688;
         }
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 1rem;
+            font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 1rem;
         }
         .container { max-width: 800px; margin: 0 auto; }
         .header { text-align: center; border-bottom: 1px solid var(--secondary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
-        .header h1 { color: var(--accent-color); margin: 0; }
         .main-btn {
-            background-color: var(--accent-color); color: white; border: none; padding: 15px 20px; font-size: 1.1rem;
-            font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;
+            background-color: var(--accent-color); color: white; border: none; padding: 15px; font-size: 1.1rem;
+            font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; margin-bottom: 1.5rem;
         }
-        .main-btn .spinner { display: none; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
         .card {
             background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem;
-            border-left: 4px solid var(--secondary-color); transition: border-color 0.3s;
+            border-left: 4px solid var(--secondary-color);
         }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .card-location { display: flex; align-items: center; font-weight: bold; }
-        .card-location .fi { font-size: 1.5rem; margin-left: 10px; border-radius: 3px; }
-        .ping { font-size: 0.9rem; font-weight: bold; color: var(--subtle-text-color); }
+        .card-header, .card-location { display: flex; align-items: center; justify-content: space-between; }
+        .card-location .fi { font-size: 1.5rem; margin-left: 10px; }
+        .ping { font-weight: bold; }
         .ping.fast { color: #4caf50; } .ping.medium { color: #ff9800; } .ping.slow { color: #f44336; }
-        .card-details { font-size: 0.85rem; color: var(--subtle-text-color); line-height: 1.6; }
         .use-case { font-size: 0.8rem; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--secondary-color); }
         .card-footer { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
-        .card-footer button {
-            background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px;
-            border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 0.9rem;
-        }
-        h2 { text-align: center; color: var(--subtle-text-color); border-bottom: 1px solid var(--secondary-color); padding-bottom: 10px; }
-        #qr-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
-        #qr-code-container { background-color: white; padding: 20px; border-radius: 8px; }
+        .card-footer button { background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        h2 { text-align: center; color: var(--subtle-text-color); }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css"/>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>V2V Configs v3</h1>
-            <p id="status">در حال بارگذاری کانفیگ‌ها...</p>
+            <h1 style="color: var(--accent-color);">V2V Configs v4</h1>
+            <p id="status">در حال بارگذاری...</p>
         </div>
-        
-        <button id="scan-btn" class="main-btn">
-            <span>🚀 تست و یافتن بهترین کانفیگ</span>
-            <div class="spinner"></div>
-        </button>
-        
+        <button id="scan-btn" class="main-btn">🚀 تست بهترین کانفیگ</button>
         <div id="results-container"></div>
-        
         <div id="full-list-section">
             <h2>لیست کامل کانفیگ‌ها</h2>
             <div id="full-list-container"></div>
         </div>
     </div>
-
-    <div id="qr-modal"><div id="qr-code-container"></div></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
-        // PWA Registration
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/V2V/sw.js'));
-        }
-
-        const scanBtn = document.getElementById('scan-btn');
-        const resultsContainer = document.getElementById('results-container');
-        const fullListContainer = document.getElementById('full-list-container');
         const statusEl = document.getElementById('status');
-        const qrModal = document.getElementById('qr-modal');
-        const qrCodeContainer = document.getElementById('qr-code-container');
-
+        const fullListContainer = document.getElementById('full-list-container');
         let allConfigs = [];
-        
-        function getUseCase(ping) {
-            if (typeof ping !== 'number') return '❔ کاربرد: نامشخص (نیاز به تست)';
-            if (ping < 250) return '🎮 عالی برای: گیم، ترید و وب‌گردی سریع';
-            if (ping < 500) return '🎬 مناسب برای: استریم، ویدیو و شبکه‌های اجتماعی';
-            return '📁 مناسب برای: دانلود و کارهای عمومی';
-        }
-
-        function testLatency(config) {
-            return new Promise(resolve => {
-                const wsAddress = `wss://${config.address}:${config.port}`;
-                const startTime = Date.now();
-                const proxyUrl = "wss://proxy.yebekhe.link"; 
-                const ws = new WebSocket(proxyUrl);
-                
-                const timeout = setTimeout(() => {
-                    ws.close();
-                    resolve({ ...config, ping: 'Timeout' });
-                }, 3000);
-
-                ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
-                ws.onmessage = (event) => {
-                    if (event.data.includes("HTTP/1.1 200")) {
-                        clearTimeout(timeout);
-                        ws.close();
-                        resolve({ ...config, ping: Date.now() - startTime });
-                    }
-                };
-                ws.onerror = () => {
-                    clearTimeout(timeout);
-                    ws.close();
-                    resolve({ ...config, ping: 'Error' });
-                };
-            });
-        }
 
         function createConfigCard(config) {
+            if (!config || !config.country_code || !config.country) return '';
             const card = document.createElement('div');
             card.className = 'card';
-
-            let pingClass = '';
-            let pingText = 'تست نشده';
-            if (typeof config.ping === 'number') {
-                pingText = `${config.ping}ms`;
-                if (config.ping < 400) pingClass = 'fast';
-                else if (config.ping < 800) pingClass = 'medium';
-                else pingClass = 'slow';
-            } else if (config.ping) {
-                pingText = config.ping;
-                pingClass = 'slow';
-            }
-            card.style.borderColor = pingClass ? `var(--${pingClass})` : 'var(--secondary-color)';
-            
-            const useCaseText = getUseCase(config.ping);
-
             card.innerHTML = `
                 <div class="card-header">
                     <div class="card-location">
-                        <span class="fi fi-${config.country_code || 'xx'}"></span>
-                        <span style="margin-right:10px;">${config.country || 'Unknown'}</span>
+                        <span class="fi fi-${config.country_code}"></span>
+                        <span style="margin-right:10px;">${config.country}</span>
                     </div>
-                    <div class="ping ${pingClass}">${pingText}</div>
                 </div>
-                <div class="card-details">
-                    <strong>${config.remarks}</strong><br>
-                    <small>ISP: ${config.isp} | Port: ${config.port}</small>
-                </div>
-                <div class="use-case">${useCaseText}</div>
+                <div class="use-case">ISP: ${config.isp || 'N/A'} | Port: ${config.port || 'N/A'}</div>
                 <div class="card-footer">
-                    <button class="qr-btn">QR</button>
-                    <button class="copy-btn">کپی</button>
+                    <button onclick="copyConfig('${config.config_str}')">کپی</button>
                 </div>
             `;
-
-            card.querySelector('.copy-btn').onclick = e => {
-                const btn = e.target;
-                navigator.clipboard.writeText(config.config_str);
-                btn.textContent = 'کپی شد!';
-                setTimeout(() => { btn.textContent = 'کپی'; }, 2000);
-            };
-            
-            card.querySelector('.qr-btn').onclick = () => {
-                qrCodeContainer.innerHTML = '';
-                new QRCode(qrCodeContainer, { text: config.config_str, width: 256, height: 256 });
-                qrModal.style.display = 'flex';
-            };
-
             return card;
         }
 
-        function renderFullList(configs) {
-             fullListContainer.innerHTML = '';
-             configs.forEach(config => {
-                fullListContainer.appendChild(createConfigCard(config));
-             });
+        function copyConfig(configStr) {
+            navigator.clipboard.writeText(configStr).then(() => alert('کپی شد!'));
         }
-        
-        scanBtn.addEventListener('click', async () => {
-            if (!allConfigs.length) return;
-            const btnText = scanBtn.querySelector('span');
-            const spinner = scanBtn.querySelector('.spinner');
-
-            scanBtn.disabled = true;
-            btnText.textContent = 'در حال تست ۱۰ کانفیگ تصادفی...';
-            spinner.style.display = 'inline-block';
-            resultsContainer.innerHTML = '';
-
-            const shuffled = [...allConfigs].sort(() => 0.5 - Math.random());
-            const selection = shuffled.slice(0, 10);
-
-            const testPromises = selection.map(testLatency);
-            const results = await Promise.all(testPromises);
-            
-            results.sort((a, b) => {
-                const aPing = typeof a.ping === 'number' ? a.ping : Infinity;
-                const bPing = typeof b.ping === 'number' ? b.ping : Infinity;
-                return aPing - bPing;
-            });
-
-            results.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
-
-            scanBtn.disabled = false;
-            btnText.textContent = '🚀 تست و یافتن بهترین کانفیگ';
-            spinner.style.display = 'none';
-        });
-        
-        qrModal.addEventListener('click', e => (e.target === qrModal) && (qrModal.style.display = 'none'));
 
         async function init() {
             try {
-                const response = await fetch('configs.json?t=' + new Date().getTime());
-                if (!response.ok) throw new Error('Network error');
-                allConfigs = await response.json();
+                const response = await fetch('configs.json?v=' + Date.now());
+                if (!response.ok) throw new Error('Network Error');
+                const data = await response.json();
+                if (!Array.isArray(data)) throw new Error('Invalid data format');
+                
+                allConfigs = data.filter(c => c && c.config_str);
                 statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ آماده است.`;
-                renderFullList(allConfigs);
+                
+                fullListContainer.innerHTML = '';
+                allConfigs.forEach(config => {
+                    const card = createConfigCard(config);
+                    if (card) fullListContainer.appendChild(card);
+                });
+
             } catch (error) {
-                statusEl.textContent = 'خطا در بارگذاری. ممکن است از نسخه آفلاین استفاده کنید.';
+                statusEl.textContent = 'خطا در بارگذاری کانفیگ‌ها. لطفاً صفحه را رفرش کنید.';
+                console.error(error);
             }
         }
 
