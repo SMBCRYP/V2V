@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://rapid-scene-1da6.mbrgh87.workers.dev/:path*"
+    }
+  ]
+}
