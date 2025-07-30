@@ -4,12 +4,38 @@ import json
 from urllib.parse import urlparse
 from typing import List, Set, Dict, Any
 
+# --- User's full list of usable sources ---
 SOURCES = [
+    # barry-far
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub4.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub5.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt",
+    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt",
+
+    # Epodonios
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vmess.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vless.txt",
+    "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/trojan.txt",
+
+    # youfoundamin
+    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/vmess_iran.txt",
+    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/ss_iran.txt",
+    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/trojan_iran.txt",
+    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/vless_iran.txt",
+    "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
+
+    # Other reliable sources from the list
+    "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt",
+    "https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64",
+    "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64",
     "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
     "https://raw.githubusercontent.com/MrPooyaX/V2Ray/main/sub/mix",
     "https://raw.githubusercontent.com/yebekhe/Configura/main/Sub/Normal/Sub.txt",
-    "https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64",
-    "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
 ]
 
 OUTPUT_FILE = 'configs.json'
@@ -37,18 +63,17 @@ def main():
     for url in SOURCES:
         try:
             content = requests.get(url, timeout=10).text
-            if "All_Configs_Sub" in url:
-                for sub_link in content.strip().splitlines():
-                    try:
-                        sub_content = requests.get(sub_link, timeout=10).text
-                        all_configs.update(base64.b64decode(sub_content).decode('utf-8').strip().splitlines())
-                    except Exception: continue
-            else:
-                try: all_configs.update(base64.b64decode(content).decode('utf-8').strip().splitlines())
-                except Exception: all_configs.update(content.strip().splitlines())
-        except Exception as e: print(f"Could not process config source {url}: {e}")
+            try:
+                decoded_content = base64.b64decode(content).decode('utf-8')
+                all_configs.update(decoded_content.strip().splitlines())
+            except Exception:
+                all_configs.update(content.strip().splitlines())
+        except Exception as e:
+            print(f"Could not process source {url}: {e}")
+            continue
             
     parsed_configs = [p for uri in all_configs if (p := parse_config(uri))]
+    
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
         json.dump(parsed_configs, f, indent=2, ensure_ascii=False)
 
