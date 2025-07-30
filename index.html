@@ -134,7 +134,6 @@
         }
 
         function createConfigCard(config) {
-            // --- ULTRA-ROBUST CHECK ---
             try {
                 const card = document.createElement('div');
                 card.className = 'card';
@@ -156,9 +155,62 @@
                 return card;
             } catch (error) {
                 console.error("Failed to create card for config:", config, error);
-                return null; // Return null for problematic configs
+                return null;
             }
         }
 
         function renderList(container, configs) {
-            container.innerHTML =
+            container.innerHTML = '';
+            configs.forEach(config => {
+                const card = createConfigCard(config);
+                if (card) container.appendChild(card);
+            });
+        }
+        
+        scanBtn.addEventListener('click', async () => {
+            if (!allConfigs.length) return;
+            const btnText = scanBtn.querySelector('span');
+            const spinner = scanBtn.querySelector('.spinner');
+            scanBtn.disabled = true;
+            btnText.textContent = 'در حال تست ۱۰ کانفیگ تصادفی...';
+            spinner.style.display = 'inline-block';
+            
+            const shuffled = [...allConfigs].sort(() => 0.5 - Math.random());
+            const selection = shuffled.slice(0, 10);
+            const testPromises = selection.map(config => getAverageLatency(config));
+            const results = await Promise.all(testPromises);
+            
+            results.sort((a, b) => {
+                const aPing = typeof a.ping === 'number' ? a.ping : Infinity;
+                const bPing = typeof b.ping === 'number' ? b.ping : Infinity;
+                return aPing - bPing;
+            });
+
+            renderList(resultsContainer, results);
+
+            scanBtn.disabled = false;
+            btnText.textContent = '🚀 تست و یافتن بهترین کانفیگ';
+            spinner.style.display = 'none';
+        });
+        
+        qrModal.addEventListener('click', e => (e.target === qrModal) && (qrModal.style.display = 'none'));
+
+        async function init() {
+            try {
+                const response = await fetch('configs.json?v=' + Date.now());
+                if (!response.ok) throw new Error('Network error');
+                allConfigs = await response.json();
+                if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
+                
+                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ آماده است.`;
+                renderList(fullListContainer, allConfigs);
+
+            } catch (error) {
+                statusEl.textContent = 'خطا در بارگذاری یا پردازش کانفیگ‌ها.';
+                console.error("Initialization failed:", error);
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
