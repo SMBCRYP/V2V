@@ -11,75 +11,42 @@
             --bg-color: #121212; --primary-color: #1e1e1e; --secondary-color: #2a2a2a;
             --text-color: #e0e0e0; --subtle-text-color: #888; --accent-color: #009688;
         }
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 1rem;
-        }
+        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 1rem; }
         .container { max-width: 800px; margin: 0 auto; }
         .header { text-align: center; border-bottom: 1px solid var(--secondary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
         .header h1 { color: var(--accent-color); margin: 0; }
-        .main-btn {
-            background-color: var(--accent-color); color: white; border: none; padding: 15px 20px; font-size: 1.1rem;
-            font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;
-        }
+        .main-btn { background-color: var(--accent-color); color: white; border: none; padding: 15px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
         .main-btn .spinner { display: none; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .card {
-            background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem;
-            border-left: 4px solid var(--secondary-color);
-        }
+        .card { background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem; border-left: 4px solid var(--secondary-color); }
         .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .card-location { display: flex; align-items: center; font-weight: bold; }
-        .card-location .fi { font-size: 1.5rem; margin-left: 10px; border-radius: 3px; }
-        .ping { font-size: 0.9rem; font-weight: bold; }
+        .card-location .fi { font-size: 1.5rem; margin-left: 10px; }
+        .ping { font-weight: bold; }
         .ping.fast { color: #4caf50; } .ping.medium { color: #ff9800; } .ping.slow { color: #f44336; }
-        .card-details { font-size: 0.85rem; color: var(--subtle-text-color); line-height: 1.6; }
+        .card-details { font-size: 0.85rem; color: var(--subtle-text-color); }
         .use-case { font-size: 0.8rem; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--secondary-color); }
         .card-footer { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
-        .card-footer button {
-            background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px;
-            border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 0.9rem;
-        }
-        #qr-modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
-        #qr-code-container { background-color: white; padding: 20px; border-radius: 8px; }
+        .card-footer button { background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css"/>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>V2V Configs</h1>
-            <p id="status">در حال بارگذاری اولیه...</p>
-        </div>
-        
-        <button id="scan-btn" class="main-btn">
-            <span>🔄 تست مجدد کانفیگ‌ها</span>
-            <div class="spinner"></div>
-        </button>
-        
+        <div class="header"><h1>V2V Configs</h1><p id="status">در حال بارگذاری اولیه...</p></div>
+        <button id="scan-btn" class="main-btn"><span>🔄 تست مجدد</span><div class="spinner"></div></button>
         <div id="results-container"></div>
     </div>
-
-    <div id="qr-modal"><div id="qr-code-container"></div></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/V2V/sw.js'));
-        }
-
         const scanBtn = document.getElementById('scan-btn');
         const resultsContainer = document.getElementById('results-container');
         const statusEl = document.getElementById('status');
-        const qrModal = document.getElementById('qr-modal');
-        const qrCodeContainer = document.getElementById('qr-code-container');
-
         let allConfigs = [];
         
         function getUseCase(ping) {
-            if (ping < 250) return '🎮 عالی برای: گیم، ترید و وب‌گردی سریع';
-            if (ping < 500) return '🎬 مناسب برای: استریم، ویدیو و شبکه‌های اجتماعی';
-            return '📁 مناسب برای: دانلود و کارهای عمومی';
+            if (ping < 250) return '🎮 عالی برای: گیم و وب‌گردی';
+            if (ping < 500) return '🎬 مناسب برای: استریم و شبکه‌های اجتماعی';
+            return '📁 مناسب برای: دانلود';
         }
 
         function pingOnce(config) {
@@ -88,7 +55,6 @@
                 const timeoutDuration = 2000;
                 let ws;
                 try {
-                    // Using a single, reliable hardcoded proxy
                     ws = new WebSocket("wss://proxy.vadariame.top/ws"); 
                     ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
                     ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
@@ -106,44 +72,40 @@
             const pingClass = config.ping < 400 ? 'fast' : (config.ping < 800 ? 'medium' : 'slow');
             card.style.borderColor = `var(--${pingClass})`;
             const useCaseText = getUseCase(config.ping);
-
-            card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${config.ping}ms</div></div><div class="card-details"><strong>${config.remarks}</strong><br><small>ISP: ${config.isp} | Port: ${config.port}</small></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button class="qr-btn">QR</button><button class="copy-btn">کپی</button></div>`;
-            card.querySelector('.copy-btn').onclick = e => { const btn = e.target; navigator.clipboard.writeText(config.config_str); btn.textContent = 'کپی شد!'; setTimeout(() => { btn.textContent = 'کپی'; }, 2000); };
-            card.querySelector('.qr-btn').onclick = () => { qrCodeContainer.innerHTML = ''; new QRCode(qrCodeContainer, { text: config.config_str, width: 256, height: 256 }); qrModal.style.display = 'flex'; };
+            card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${config.ping}ms</div></div><div class="card-details"><strong>${config.remarks}</strong></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button onclick="copyConfig('${config.config_str}')">کپی</button></div>`;
             return card;
         }
+        
+        function copyConfig(configStr) { navigator.clipboard.writeText(configStr); alert('کپی شد!'); }
 
         function renderList(configs) {
             resultsContainer.innerHTML = '';
-            if (configs.length === 0) {
-                statusEl.textContent = 'هیچ کانفیگ آنلاینی یافت نشد. لطفاً دوباره تست کنید.';
-                return;
-            }
+            if (configs.length === 0) { statusEl.textContent = 'هیچ کانفیگ آنلاینی یافت نشد.'; return; }
             configs.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
             statusEl.textContent = `نمایش ${configs.length} کانفیگ آنلاین`;
         }
         
         async function runFullScan() {
-            if (!allConfigs.length) {
-                statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.';
-                return;
-            }
-            const btnText = scanBtn.querySelector('span');
+            if (!allConfigs.length) { statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.'; return; }
+            const btnUI = scanBtn.querySelector('span');
             const spinner = scanBtn.querySelector('.spinner');
             scanBtn.disabled = true;
-            btnText.textContent = 'در حال تست...';
+            btnUI.textContent = 'در حال تست...';
             spinner.style.display = 'inline-block';
             resultsContainer.innerHTML = '';
 
-            const testPromises = allConfigs.map(async (config) => ({ ...config, ping: await pingOnce(config) }));
+            const testPromises = allConfigs.map(config => pingOnce(config));
             const results = await Promise.all(testPromises);
             
-            const onlineConfigs = results.filter(r => r.ping !== null).sort((a, b) => a.ping - b.ping);
+            const onlineConfigs = allConfigs
+                .map((config, i) => ({ ...config, ping: results[i] }))
+                .filter(r => r.ping !== null)
+                .sort((a, b) => a.ping - b.ping);
 
             renderList(onlineConfigs);
 
             scanBtn.disabled = false;
-            btnText.textContent = '🔄 تست مجدد کانفیگ‌ها';
+            btnUI.textContent = '🔄 تست مجدد';
             spinner.style.display = 'none';
         }
 
@@ -153,12 +115,13 @@
                 if (!response.ok) throw new Error('Network error');
                 allConfigs = await response.json();
                 if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
-                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست خودکار...`;
+                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست...`;
                 runFullScan();
             } catch (error) {
                 statusEl.textContent = 'خطا در بارگذاری اولیه. لطفاً صفحه را رفرش کنید.';
             }
         }
+        scanBtn.addEventListener('click', runFullScan);
         init();
     </script>
 </body>
