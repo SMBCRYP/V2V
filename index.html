@@ -26,7 +26,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .card {
             background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem;
-            border-left: 4px solid var(--secondary-color); transition: border-color 0.3s;
+            border-left: 4px solid var(--secondary-color);
         }
         .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .card-location { display: flex; align-items: center; font-weight: bold; }
@@ -76,37 +76,52 @@
 
         let allConfigs = [];
         
+        const PROXY_URLS = [
+            "wss://ws-proxy.fire-build.workers.dev",
+            "wss://proxy.yebekhe.link"
+        ];
+        
         function getUseCase(ping) {
             if (ping < 250) return '🎮 عالی برای: گیم، ترید و وب‌گردی سریع';
             if (ping < 500) return '🎬 مناسب برای: استریم، ویدیو و شبکه‌های اجتماعی';
             return '📁 مناسب برای: دانلود و کارهای عمومی';
         }
 
-        function pingOnce(config) {
+        function attemptConnection(url, config) {
             return new Promise(resolve => {
                 const startTime = Date.now();
-                const timeoutDuration = 2000; // 2 second timeout
+                const timeoutDuration = 2000;
                 let ws;
                 try {
-                    ws = new WebSocket("wss://proxy.yebekhe.link");
-                    ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
-                    ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
+                    ws = new WebSocket(url);
+                    if (url.includes("proxy")) { // It's a proxy
+                        ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
+                        ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
+                    } else { // It's a direct connection attempt
+                        ws.onopen = succeed;
+                    }
                 } catch (e) { fail(); return; }
-
-                const timeout = setTimeout(() => fail(), timeoutDuration);
-
-                function succeed() {
-                    clearTimeout(timeout);
-                    ws.close();
-                    resolve(Date.now() - startTime);
-                }
-                function fail() {
-                    clearTimeout(timeout);
-                    if (ws) ws.close();
-                    resolve(null); // Return null for failed pings
-                }
+                const timeout = setTimeout(fail, timeoutDuration);
+                function succeed() { clearTimeout(timeout); ws.close(); resolve(Date.now() - startTime); }
+                function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(null); }
                 ws.onerror = fail;
             });
+        }
+        
+        async function pingOnce(config) {
+            // Stage 1: Attempt Direct Connection
+            const directUrl = `wss://${config.address}:${config.port}`;
+            let latency = await attemptConnection(directUrl, config);
+            if (latency !== null) return latency;
+
+            // Stage 2: Attempt Proxies
+            for (const proxyUrl of PROXY_URLS) {
+                latency = await attemptConnection(proxyUrl, config);
+                if (latency !== null) return latency;
+            }
+            
+            // If all attempts fail
+            return null;
         }
 
         function createConfigCard(config) {
@@ -133,7 +148,10 @@
         }
         
         async function runFullScan() {
-            if (!allConfigs.length) return;
+            if (!allConfigs.length) {
+                statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.';
+                return;
+            }
             const btnText = scanBtn.querySelector('span');
             const spinner = scanBtn.querySelector('.spinner');
             scanBtn.disabled = true;
@@ -141,26 +159,23 @@
             spinner.style.display = 'inline-block';
             resultsContainer.innerHTML = '';
 
-            const testPromises = allConfigs.map(async (config) => {
-                const ping = await pingOnce(config);
-                return { ...config, ping };
-            });
-
-            const results = await Promise.all(testPromises);
+            const batchSize = 10;
+            let onlineConfigs = [];
+            for (let i = 0; i < allConfigs.length; i += batchSize) {
+                const batch = allConfigs.slice(i, i + batchSize);
+                const testPromises = batch.map(async (config) => ({ ...config, ping: await pingOnce(config) }));
+                const results = await Promise.all(testPromises);
+                onlineConfigs.push(...results.filter(r => r.ping !== null));
+                
+                statusEl.textContent = `تست ${Math.min(i + batchSize, allConfigs.length)} از ${allConfigs.length} کانفیگ...`;
+                
+                const sorted = [...onlineConfigs].sort((a,b) => a.ping - b.ping);
+                renderList(sorted);
+            }
             
-            const onlineConfigs = results
-                .filter(r => r.ping !== null) // Filter out offline configs
-                .sort((a, b) => a.ping - b.ping); // Sort by ping
-
-            renderList(onlineConfigs);
-
             scanBtn.disabled = false;
             btnText.textContent = '🔄 تست مجدد کانفیگ‌ها';
-            spinner.style.display = 'none';
         }
-
-        scanBtn.addEventListener('click', runFullScan);
-        qrModal.addEventListener('click', e => (e.target === qrModal) && (qrModal.style.display = 'none'));
 
         async function init() {
             try {
@@ -168,10 +183,8 @@
                 if (!response.ok) throw new Error('Network error');
                 allConfigs = await response.json();
                 if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
-                
                 statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست خودکار...`;
-                runFullScan(); // Automatically run the scan on page load
-
+                runFullScan();
             } catch (error) {
                 statusEl.textContent = 'خطا در بارگذاری اولیه. لطفاً صفحه را رفرش کنید.';
             }
