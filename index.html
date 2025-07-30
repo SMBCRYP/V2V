@@ -75,11 +75,7 @@
         const qrCodeContainer = document.getElementById('qr-code-container');
 
         let allConfigs = [];
-        
-        const PROXY_URLS = [
-            "wss://ws-proxy.fire-build.workers.dev",
-            "wss://proxy.yebekhe.link"
-        ];
+        let PROXY_URLS = []; // Will be loaded from proxies.json
         
         function getUseCase(ping) {
             if (ping < 250) return '🎮 عالی برای: گیم، ترید و وب‌گردی سریع';
@@ -87,41 +83,23 @@
             return '📁 مناسب برای: دانلود و کارهای عمومی';
         }
 
-        function attemptConnection(url, config) {
+        function pingOnce(config, proxyIndex = 0) {
             return new Promise(resolve => {
+                if (proxyIndex >= PROXY_URLS.length) { resolve(null); return; }
+                const proxyUrl = PROXY_URLS[proxyIndex];
                 const startTime = Date.now();
                 const timeoutDuration = 2000;
                 let ws;
                 try {
-                    ws = new WebSocket(url);
-                    if (url.includes("proxy")) { // It's a proxy
-                        ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
-                        ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
-                    } else { // It's a direct connection attempt
-                        ws.onopen = succeed;
-                    }
+                    ws = new WebSocket(proxyUrl);
+                    ws.onopen = () => ws.send(`CONNECT ${config.address}:${config.port} HTTP/1.1\r\nHost: ${config.address}\r\n\r\n`);
+                    ws.onmessage = (event) => { if (event.data.includes("HTTP/1.1 200")) succeed(); };
                 } catch (e) { fail(); return; }
                 const timeout = setTimeout(fail, timeoutDuration);
                 function succeed() { clearTimeout(timeout); ws.close(); resolve(Date.now() - startTime); }
-                function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(null); }
+                function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(pingOnce(config, proxyIndex + 1)); }
                 ws.onerror = fail;
             });
-        }
-        
-        async function pingOnce(config) {
-            // Stage 1: Attempt Direct Connection
-            const directUrl = `wss://${config.address}:${config.port}`;
-            let latency = await attemptConnection(directUrl, config);
-            if (latency !== null) return latency;
-
-            // Stage 2: Attempt Proxies
-            for (const proxyUrl of PROXY_URLS) {
-                latency = await attemptConnection(proxyUrl, config);
-                if (latency !== null) return latency;
-            }
-            
-            // If all attempts fail
-            return null;
         }
 
         function createConfigCard(config) {
@@ -148,10 +126,9 @@
         }
         
         async function runFullScan() {
-            if (!allConfigs.length) {
-                statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.';
-                return;
-            }
+            if (!allConfigs.length) { statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.'; return; }
+            if (PROXY_URLS.length === 0) { statusEl.textContent = 'هیچ پراکسی فعالی برای تست یافت نشد.'; return; }
+            
             const btnText = scanBtn.querySelector('span');
             const spinner = scanBtn.querySelector('.spinner');
             scanBtn.disabled = true;
@@ -159,30 +136,30 @@
             spinner.style.display = 'inline-block';
             resultsContainer.innerHTML = '';
 
-            const batchSize = 10;
-            let onlineConfigs = [];
-            for (let i = 0; i < allConfigs.length; i += batchSize) {
-                const batch = allConfigs.slice(i, i + batchSize);
-                const testPromises = batch.map(async (config) => ({ ...config, ping: await pingOnce(config) }));
-                const results = await Promise.all(testPromises);
-                onlineConfigs.push(...results.filter(r => r.ping !== null));
-                
-                statusEl.textContent = `تست ${Math.min(i + batchSize, allConfigs.length)} از ${allConfigs.length} کانفیگ...`;
-                
-                const sorted = [...onlineConfigs].sort((a,b) => a.ping - b.ping);
-                renderList(sorted);
-            }
-            
+            const testPromises = allConfigs.map(async (config) => ({ ...config, ping: await pingOnce(config) }));
+            const results = await Promise.all(testPromises);
+            const onlineConfigs = results.filter(r => r.ping !== null).sort((a, b) => a.ping - b.ping);
+
+            renderList(onlineConfigs);
+
             scanBtn.disabled = false;
             btnText.textContent = '🔄 تست مجدد کانفیگ‌ها';
+            spinner.style.display = 'none';
         }
 
         async function init() {
             try {
-                const response = await fetch('configs.json?v=' + Date.now());
-                if (!response.ok) throw new Error('Network error');
-                allConfigs = await response.json();
-                if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
+                const [proxyResponse, configResponse] = await Promise.all([
+                    fetch('proxies.json?v=' + Date.now()),
+                    fetch('configs.json?v=' + Date.now())
+                ]);
+                if (!proxyResponse.ok || !configResponse.ok) throw new Error('Network error');
+                
+                PROXY_URLS = await proxyResponse.json();
+                allConfigs = await configResponse.json();
+                
+                if(!Array.isArray(allConfigs) || !Array.isArray(PROXY_URLS)) throw new Error("Data is not an array");
+                
                 statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست خودکار...`;
                 runFullScan();
             } catch (error) {
