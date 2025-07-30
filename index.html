@@ -1,93 +1,131 @@
-<script>
-    const scanBtn = document.getElementById('scan-btn');
-    const resultsContainer = document.getElementById('results-container');
-    const statusEl = document.getElementById('status');
-    let allConfigs = [];
-    
-    // --- آدرس پروکسی شما با موفقیت جای‌گذاری شد ---
-    const PROXY_URL = "wss://rapid-scene-1da6.mbrgh87.workers.dev/"; 
-    
-    function getUseCase(ping) {
-        if (ping < 250) return '🎮 عالی برای: گیم و وب‌گردی';
-        if (ping < 500) return '🎬 مناسب برای: استریم و شبکه‌های اجتماعی';
-        return '📁 مناسب برای: دانلود';
-    }
-
-    function pingOnce(config) {
-        return new Promise(resolve => {
-            const startTime = Date.now();
-            const timeoutDuration = 3000;
-            let ws;
-            try {
-                // آدرس ورکر شما برای پینگ استفاده می‌شود
-                ws = new WebSocket(PROXY_URL);
-                ws.onopen = () => ws.send(JSON.stringify({ address: config.address, port: config.port }));
-                ws.onmessage = (event) => { if (event.data === "success") succeed(); };
-            } catch (e) { fail(); return; }
-            const timeout = setTimeout(fail, timeoutDuration);
-            function succeed() { clearTimeout(timeout); ws.close(); resolve(Date.now() - startTime); }
-            function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(null); }
-            ws.onerror = fail;
-        });
-    }
-
-    function createConfigCard(config) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        const pingClass = config.ping < 400 ? 'fast' : (config.ping < 800 ? 'medium' : 'slow');
-        card.style.borderColor = `var(--${pingClass})`;
-        const useCaseText = getUseCase(config.ping);
-        card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${config.ping}ms</div></div><div class="card-details"><strong>${config.remarks}</strong></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button onclick="copyConfig('${config.config_str}')">کپی</button></div>`;
-        return card;
-    }
-    
-    function copyConfig(configStr) { navigator.clipboard.writeText(configStr); alert('کپی شد!'); }
-
-    function renderList(configs) {
-        resultsContainer.innerHTML = '';
-        if (configs.length === 0) { statusEl.textContent = 'هیچ کانفیگ آنلاینی یافت نشد.'; return; }
-        configs.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
-        statusEl.textContent = `نمایش ${configs.length} کانفیگ آنلاین`;
-    }
-    
-    async function runFullScan() {
-        if (!allConfigs.length) { statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.'; return; }
-        if (!PROXY_URL.includes("workers.dev")) { statusEl.textContent = 'خطا: لطفاً آدرس پراکسی شخصی خود را در کد index.html وارد کنید.'; return; }
-
-        const btnUI = scanBtn.querySelector('span');
-        const spinner = scanBtn.querySelector('.spinner');
-        scanBtn.disabled = true;
-        btnUI.textContent = 'در حال تست...';
-        spinner.style.display = 'inline-block';
-        resultsContainer.innerHTML = '';
-
-        const testPromises = allConfigs.map(config => pingOnce(config));
-        const results = await Promise.all(testPromises);
-        
-        const onlineConfigs = allConfigs
-            .map((config, i) => ({ ...config, ping: results[i] }))
-            .filter(r => r.ping !== null)
-            .sort((a, b) => a.ping - b.ping);
-
-        renderList(onlineConfigs);
-
-        scanBtn.disabled = false;
-        btnUI.textContent = '🔄 تست مجدد';
-        spinner.style.display = 'none';
-    }
-
-    async function init() {
-        try {
-            const response = await fetch('configs.json?v=' + Date.now());
-            if (!response.ok) throw new Error('Network error');
-            allConfigs = await response.json();
-            if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
-            statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست...`;
-            runFullScan();
-        } catch (error) {
-            statusEl.textContent = 'خطا در بارگذاری اولیه. لطفاً صفحه را رفرش کنید.';
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>V2V Configs</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1c1c1c">
+    <style>
+        :root {
+            --bg-color: #121212; --primary-color: #1e1e1e; --secondary-color: #2a2a2a;
+            --text-color: #e0e0e0; --subtle-text-color: #888; --accent-color: #009688;
         }
-    }
-    scanBtn.addEventListener('click', runFullScan);
-    init();
-</script>
+        body { font-family: system-ui, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 1rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 1px solid var(--secondary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .header h1 { color: var(--accent-color); margin: 0; }
+        .main-btn { background-color: var(--accent-color); color: white; border: none; padding: 15px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; }
+        .main-btn .spinner { display: none; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin-left: 10px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .card { background-color: var(--primary-color); border-radius: 8px; padding: 15px; margin-bottom: 1rem; border-left: 4px solid var(--secondary-color); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .card-location { display: flex; align-items: center; font-weight: bold; }
+        .card-location .fi { font-size: 1.5rem; margin-left: 10px; }
+        .ping { font-weight: bold; }
+        .ping.fast { color: #4caf50; } .ping.medium { color: #ff9800; } .ping.slow { color: #f44336; }
+        .card-details { font-size: 0.85rem; color: var(--subtle-text-color); }
+        .use-case { font-size: 0.8rem; font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--secondary-color); }
+        .card-footer { margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px; }
+        .card-footer button { background-color: var(--secondary-color); color: var(--text-color); border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css"/>
+</head>
+<body>
+    <div class="container">
+        <div class="header"><h1>V2V Configs</h1><p id="status">در حال بارگذاری اولیه...</p></div>
+        <button id="scan-btn" class="main-btn"><span>🔄 تست مجدد</span><div class="spinner"></div></button>
+        <div id="results-container"></div>
+    </div>
+    <script>
+        const scanBtn = document.getElementById('scan-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const statusEl = document.getElementById('status');
+        let allConfigs = [];
+        
+        // --- YOUR PERSONAL PROXY URL IS NOW SET ---
+        const PROXY_URL = "wss://rapid-scene-1da6.mbrgh87.workers.dev/";
+        
+        function getUseCase(ping) {
+            if (ping < 250) return '🎮 عالی برای: گیم و وب‌گردی';
+            if (ping < 500) return '🎬 مناسب برای: استریم و شبکه‌های اجتماعی';
+            return '📁 مناسب برای: دانلود';
+        }
+
+        function pingOnce(config) {
+            return new Promise(resolve => {
+                const startTime = Date.now();
+                const timeoutDuration = 3000;
+                let ws;
+                try {
+                    ws = new WebSocket(PROXY_URL);
+                    ws.onopen = () => ws.send(JSON.stringify({ address: config.address, port: config.port }));
+                    ws.onmessage = (event) => { if (event.data === "success") succeed(); else fail(); };
+                } catch (e) { fail(); return; }
+                const timeout = setTimeout(fail, timeoutDuration);
+                function succeed() { clearTimeout(timeout); ws.close(); resolve(Date.now() - startTime); }
+                function fail() { clearTimeout(timeout); if (ws) ws.close(); resolve(null); }
+                ws.onerror = fail;
+            });
+        }
+
+        function createConfigCard(config) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const pingClass = config.ping < 400 ? 'fast' : (config.ping < 800 ? 'medium' : 'slow');
+            card.style.borderColor = `var(--${pingClass})`;
+            const useCaseText = getUseCase(config.ping);
+            card.innerHTML = `<div class="card-header"><div class="card-location"><span class="fi fi-${config.country_code || 'xx'}"></span><span style="margin-right:10px;">${config.country || 'Unknown'}</span></div><div class="ping ${pingClass}">${config.ping}ms</div></div><div class="card-details"><strong>${config.remarks}</strong></div><div class="use-case">${useCaseText}</div><div class="card-footer"><button onclick="copyConfig('${config.config_str}')">کپی</button></div>`;
+            return card;
+        }
+        
+        function copyConfig(configStr) { navigator.clipboard.writeText(configStr); alert('کپی شد!'); }
+
+        function renderList(configs) {
+            resultsContainer.innerHTML = '';
+            if (configs.length === 0) { statusEl.textContent = 'هیچ کانفیگ آنلاینی یافت نشد.'; return; }
+            configs.forEach(config => resultsContainer.appendChild(createConfigCard(config)));
+            statusEl.textContent = `نمایش ${configs.length} کانفیگ آنلاین`;
+        }
+        
+        async function runFullScan() {
+            if (!allConfigs.length) { statusEl.textContent = 'هیچ کانفیگی برای تست یافت نشد.'; return; }
+            const btnUI = scanBtn.querySelector('span');
+            const spinner = scanBtn.querySelector('.spinner');
+            scanBtn.disabled = true;
+            btnUI.textContent = 'در حال تست...';
+            spinner.style.display = 'inline-block';
+            resultsContainer.innerHTML = '';
+
+            const testPromises = allConfigs.map(config => pingOnce(config));
+            const results = await Promise.all(testPromises);
+            
+            const onlineConfigs = allConfigs
+                .map((config, i) => ({ ...config, ping: results[i] }))
+                .filter(r => r.ping !== null)
+                .sort((a, b) => a.ping - b.ping);
+
+            renderList(onlineConfigs);
+
+            scanBtn.disabled = false;
+            btnUI.textContent = '🔄 تست مجدد';
+            spinner.style.display = 'none';
+        }
+
+        async function init() {
+            try {
+                const response = await fetch('configs.json?v=' + Date.now());
+                if (!response.ok) throw new Error('Network error');
+                allConfigs = await response.json();
+                if(!Array.isArray(allConfigs)) throw new Error("Data is not an array");
+                statusEl.textContent = `مجموع ${allConfigs.length} کانفیگ یافت شد. شروع تست...`;
+                runFullScan();
+            } catch (error) {
+                statusEl.textContent = 'خطا در بارگذاری اولیه. لطفاً صفحه را رفرش کنید.';
+            }
+        }
+        scanBtn.addEventListener('click', runFullScan);
+        init();
+    </script>
+</body>
+</html>
