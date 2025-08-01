@@ -1,0 +1,9 @@
+# The name of your worker script in the Cloudflare dashboard.
+# This ensures the automatic deployment updates your existing worker.
+name = "rapid-scene-1da6"
+
+# The entrypoint file for your worker's code in your GitHub repository.
+main = "index.js"
+
+# Specifies the version of the Workers runtime for compatibility.
+compatibility_date = "2025-07-25"
