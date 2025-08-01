@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جمع‌آوری کانفیگ از منابع</title>
+    <title>جمع‌آوری کانفیگ از منابع (نسخه نهایی)</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            background-color: #f0f2f5;
+            background-color: #f0f2f5; /* پس‌زمینه خاکستری روشن */
             color: #333;
             margin: 0;
             padding: 20px;
         }
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #fff;
+            background: #ffffff; /* پس‌زمینه سفید برای کادر اصلی */
             padding: 25px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
         }
         h1, h2 {
             color: #1a1a1a;
@@ -51,6 +53,7 @@
             border: 1px solid #eaeaea;
             border-radius: 6px;
             padding: 15px;
+            text-align: left;
             white-space: pre-wrap;
             word-wrap: break-word;
             font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
@@ -82,18 +85,14 @@
         <h2>نتیجه نهایی:</h2>
         <pre id="result">هنوز درخواستی ارسال نشده است.</pre>
 
-        <h2>لیست منابع استفاده شده:</h2>
-        <pre id="sources-list"></pre>
     </div>
 
     <script>
         const fetchButton = document.getElementById('fetchButton');
         const resultContainer = document.getElementById('result');
         const statusContainer = document.getElementById('status');
-        const sourcesListContainer = document.getElementById('sources-list');
-
+        
         const sources = [
-            // لیست قبلی
             "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
             "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt",
             "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt",
@@ -116,8 +115,6 @@
             "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/All-Configs-for-V2Ray.txt",
             "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt",
             "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/sub/sub_merge.txt",
-
-            // --- منابع جدید اضافه شده از NiREvil/vless ---
             "https://raw.githubusercontent.com/NiREvil/vless/main/sub/vless.txt",
             "https://raw.githubusercontent.com/NiREvil/vless/main/sub/vmess.txt",
             "https://raw.githubusercontent.com/NiREvil/vless/main/sub/trojan.txt",
@@ -127,8 +124,6 @@
             "https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/ss.txt"
         ];
         
-        sourcesListContainer.textContent = sources.join('\\n');
-
         async function fetchFromSource(url) {
             try {
                 const proxyUrl = `/api/?url=${encodeURIComponent(url)}`;
@@ -159,9 +154,9 @@
             
             for (let i = 0; i < sources.length; i++) {
                 const url = sources[i];
-                statusContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}: ${url}`;
+                statusContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}: ${url.substring(0, 60)}...`;
                 const configs = await fetchFromSource(url);
-                if (configs.length === 0) {
+                if (configs.length === 0 && !statusContainer.textContent.includes('موفق')) {
                     failedSources++;
                 }
                 configs.forEach(config => {
