@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جمع‌آوری و تست کانفیگ</title>
+    <title>جمع‌آوری کانفیگ از منابع</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -93,23 +93,38 @@
         const sourcesListContainer = document.getElementById('sources-list');
 
         const sources = [
-            // منبع جدید اضافه شده
-            "https://raw.githubusercontent.com/NiREvil/vless/main/vless.txt",
-            // منابع قبلی
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub1.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub2.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub3.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub4.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub6.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub7.txt",
-            "https://raw.githubusercontent.com/barry-far/V2ray-config/main/Sub8.txt",
-            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
-            "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
+            // لیست قبلی
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub4.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub5.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt",
             "https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
             "https://raw.githubusercontent.com/MrPooyaX/V2Ray/main/sub/mix",
             "https://raw.githubusercontent.com/yebekhe/Configura/main/Sub/Normal/Sub.txt",
             "https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64",
-            "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64"
+            "https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vmess.txt",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vless.txt",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/trojan.txt",
+            "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt",
+            "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/All-Configs-for-V2Ray.txt",
+            "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt",
+            "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/sub/sub_merge.txt",
+
+            // --- منابع جدید اضافه شده از NiREvil/vless ---
+            "https://raw.githubusercontent.com/NiREvil/vless/main/sub/vless.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/sub/vmess.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/sub/trojan.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vless.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vmess.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/trojan.txt",
+            "https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/ss.txt"
         ];
         
         sourcesListContainer.textContent = sources.join('\\n');
@@ -119,7 +134,8 @@
                 const proxyUrl = `/api/?url=${encodeURIComponent(url)}`;
                 const response = await fetch(proxyUrl);
                 if (!response.ok) {
-                    throw new Error(`Failed to fetch from ${url}`);
+                    console.error(`Proxy returned an error for ${url}: ${response.status}`);
+                    return [];
                 }
                 const text = await response.text();
                 try {
@@ -139,19 +155,23 @@
             statusContainer.textContent = 'شروع فرآیند...';
             
             const allConfigs = new Set();
+            let failedSources = 0;
             
             for (let i = 0; i < sources.length; i++) {
                 const url = sources[i];
                 statusContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}: ${url}`;
                 const configs = await fetchFromSource(url);
+                if (configs.length === 0) {
+                    failedSources++;
+                }
                 configs.forEach(config => {
-                    if (config.trim()) {
+                    if (config.trim().startsWith('vless://') || config.trim().startsWith('vmess://') || config.trim().startsWith('trojan://') || config.trim().startsWith('ss://')) {
                         allConfigs.add(config.trim());
                     }
                 });
             }
 
-            statusContainer.textContent = `پردازش تمام شد. تعداد ${allConfigs.size} کانفیگ یکتا پیدا شد.`;
+            statusContainer.textContent = `پردازش تمام شد. تعداد ${allConfigs.size} کانفیگ یکتا از ${sources.length - failedSources} منبع موفق پیدا شد.`;
             resultContainer.textContent = Array.from(allConfigs).join('\\n');
             
             fetchButton.disabled = false;
