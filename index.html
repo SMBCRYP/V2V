@@ -212,11 +212,15 @@
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'action-btn';
                 copyBtn.textContent = 'کپی';
+                // --- START OF CHANGE ---
                 copyBtn.onclick = () => {
-                    navigator.clipboard.writeText(cfg.url);
+                    // This regex removes any non-printable characters or characters outside the standard ASCII set.
+                    const cleanedUrl = cfg.url.replace(/[^\x20-\x7E]/g, '');
+                    navigator.clipboard.writeText(cleanedUrl);
                     copyBtn.textContent = 'کپی شد!';
                     setTimeout(() => { copyBtn.textContent = 'کپی'; }, 2000);
                 };
+                // --- END OF CHANGE ---
 
                 const qrBtn = document.createElement('button');
                 qrBtn.className = 'action-btn';
