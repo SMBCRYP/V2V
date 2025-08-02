@@ -110,11 +110,26 @@
         }
         .close-btn { position: absolute; top: 10px; left: 20px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
         #modal-qr-code { background: white; padding: 10px; border-radius: 4px; margin: 15px auto 0; }
+        /* --- Style for the new error log display --- */
+        #debug-log {
+            background-color: #2e1f21;
+            color: var(--error-color);
+            padding: 15px;
+            border: 1px solid var(--error-color);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            text-align: left;
+            direction: ltr;
+        }
     </style>
 </head>
 <body>
 
     <main>
+        <pre id="debug-log" style="display: none;"></pre>
+
         <h1>
             <span style="color: #28a745;">V</span><span style="color: #ffffff;">2</span><span style="color: #dc3545;">V</span>
         </h1>
@@ -132,7 +147,27 @@
     </div>
 
     <script>
-        const fetchButton = document.getElementById('fetchButton');
-        const statusContainer = document.getElementById('status');
-        const configsContainer = document.getElementById('configs-container');
-        const qrModal = document.getElementById('qr
+        // --- Start of Error Catcher ---
+        // This code will catch any JavaScript error on the page and display it.
+        window.onerror = function(message, source, lineno, colno, error) {
+            const logContainer = document.getElementById('debug-log');
+            if (logContainer) {
+                logContainer.style.display = 'block';
+                logContainer.textContent = `JAVASCRIPT ERROR:\n\nMessage: ${message}\nLine: ${lineno}\nFile: ${source}`;
+            }
+            // By returning true, we prevent the browser's default error handling.
+            return true;
+        };
+        // --- End of Error Catcher ---
+
+        try {
+            const fetchButton = document.getElementById('fetchButton');
+            const statusContainer = document.getElementById('status');
+            const configsContainer = document.getElementById('configs-container');
+            const qrModal = document.getElementById('qrModal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalQrCanvas = document.getElementById('modal-qr-code');
+            const closeBtn = document.querySelector('.close-btn');
+
+            const sources = [
+                "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub4.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub5.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt","https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt","https://raw.githubusercontent.com/MrPooyaX/V2Ray/main/sub/mix","https://raw.githubusercontent.com/yebekhe/Configura/main/Sub/Normal/Sub.txt","https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64","https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vmess.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vless.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/trojan.txt","https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt","https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/All-Configs-for-V2Ray.txt","https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt","https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/sub/sub_merge.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/vless.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/vmess.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/trojan.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vless.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vmess.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/trojan.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/ss.txt","https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt","https
