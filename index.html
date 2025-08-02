@@ -1,137 +1,271 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>اشتراک رایگان V2Ray | بدون محدودیت</title>
-  <meta name="description" content="دریافت روزانه اشتراک‌های رایگان V2Ray، VLESS و Trojan برای V2RayNG و سایر کلاینت‌ها. فقط با یک کلیک کپی کنید." />
-  <meta property="og:title" content="اشتراک رایگان V2Ray" />
-  <meta property="og:description" content="کانفیگ‌های بروز V2Ray، VLESS و Trojan برای کاربران ایرانی. قابل استفاده در همه کلاینت‌ها." />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="https://v2ray-sub-mbrgh87.vercel.app/logo.png" />
-  <link rel="icon" href="/favicon.ico" />
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #111;
-      color: #eee;
-      text-align: center;
-      padding: 20px;
-    }
-    h1 {
-      color: #f44;
-    }
-    .config-block {
-      background: #222;
-      border: 1px solid #444;
-      border-radius: 10px;
-      margin: 20px auto;
-      padding: 15px;
-      width: 90%;
-      max-width: 600px;
-      text-align: left;
-      direction: ltr;
-      white-space: pre-wrap;
-      word-break: break-all;
-      position: relative;
-    }
-    button {
-      background: #f44;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin-top: 10px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover {
-      background: #d33;
-    }
-    .copy-all {
-      margin: 20px 0;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>اشتراک رایگان V2Ray | بدون محدودیت</title>
+    <meta name="description" content="دریافت روزانه اشتراک‌های رایگان V2Ray، VLESS و Trojan برای V2RayNG و سایر کلاینت‌ها. فقط با یک کلیک کپی کنید." />
+    <meta property="og:title" content="اشتراک رایگان V2Ray" />
+    <meta property="og:description" content="کانفیگ‌های بروز V2Ray، VLESS و Trojan برای کاربران ایرانی. قابل استفاده در همه کلاینت‌ها." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://v2ray-sub-mbrgh87.vercel.app/logo.png" />
+    <link rel="icon" href="/favicon.ico" />
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary-color: #03dac6;
+            --error-color: #cf6679;
+            --btn-bg: #2a2a2a;
+            --btn-hover-bg: #3a3a3a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 1em;
+            color: var(--primary-color);
+        }
+        button.copy-all {
+            background-color: var(--primary-color);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: block;
+            width: 100%;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .config-card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .config-details {
+            padding: 15px;
+            flex-grow: 1;
+        }
+        .config-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .config-country {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 15px;
+            background-color: rgba(0,0,0,0.2);
+        }
+        .action-btn {
+            background-color: var(--btn-bg);
+            color: var(--text-color);
+            border: 1px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            padding: 8px 15px;
+            flex-grow: 1;
+            margin: 0 5px;
+        }
+        .action-btn:hover { background-color: var(--btn-hover-bg); }
+        .info-box {
+            text-align: center; font-weight: bold; margin-bottom: 15px; padding: 10px; border-radius: 5px; background-color: var(--card-color);
+        }
+        .info-box.error { color: var(--error-color); }
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8);
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: var(--card-color); color: var(--text-color); padding: 20px; border-radius: 8px; width: 90%; max-width: 320px; text-align: center;
+            position: relative;
+        }
+        .close-btn { position: absolute; top: 10px; left: 20px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+        #modal-qr-code { background: white; padding: 10px; border-radius: 4px; margin: 15px auto 0; }
+    </style>
 </head>
 <body>
-  <h1>اشتراک‌های رایگان V2Ray</h1>
-  <button class="copy-all" onclick="copyAll()">📋 کپی همه کانفیگ‌ها</button>
-  <div id="configs">در حال بارگذاری...</div>
 
-  <script>
-    const configUrl = './configs.txt';
-    const configsDiv = document.getElementById("configs");
+    <main>
+        <h1>اشتراک‌های رایگان V2Ray</h1>
+        <button class="copy-all">📋 کپی همه کانفیگ‌ها</button>
+        <div id="info" class="info-box">در حال بارگذاری...</div>
+        <div id="configs-container"></div>
+    </main>
+    
+    <div id="qrModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="modal-title">QR Code</h3>
+            <canvas id="modal-qr-code"></canvas>
+        </div>
+    </div>
 
-    fetch(configUrl)
-      .then(response => {
-        if (!response.ok) throw new Error("فایل پیدا نشد!");
-        return response.text();
-      })
-      .then(data => {
-        const configs = data.trim().split(/\r?\n/).filter(Boolean);
-        configsDiv.innerHTML = "";
-        configs.forEach(config => {
-          const block = document.createElement("div");
-          block.className = "config-block";
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const infoContainer = document.getElementById('info');
+            const configsContainer = document.getElementById('configs-container');
+            const qrModal = document.getElementById('qrModal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalQrCanvas = document.getElementById('modal-qr-code');
+            const closeBtn = document.querySelector('.close-btn');
 
-          const pre = document.createElement("pre");
-          pre.textContent = config;
-          block.appendChild(pre);
+            let allConfigsText = '';
 
-          const btn = document.createElement("button");
-          btn.textContent = "📋 کپی";
-          btn.onclick = () => copyText(config, btn);
-          block.appendChild(btn);
+            const countryMap = {
+                'iran': 'ایران 🇮🇷', 'ir': 'ایران 🇮🇷', 'germany': 'آلمان 🇩🇪', 'de': 'آلمان 🇩🇪', 'turkey': 'ترکیه 🇹🇷', 'tr': 'ترکیه 🇹🇷', 'france': 'فرانسه 🇫🇷', 'fr': 'فرانسه 🇫🇷', 'netherlands': 'هلند 🇳🇱', 'nl': 'هلند 🇳🇱', 'usa': 'آمریکا 🇺🇸', 'us': 'آمریکا 🇺🇸', 'canada': 'کانادا 🇨🇦', 'ca': 'کانادا 🇨🇦', 'uk': 'انگلیس 🇬🇧', 'gb': 'انگلیس 🇬🇧', 'singapore': 'سنگاپور 🇸🇬', 'sg': 'سنگاپور 🇸🇬',
+            };
+            const miscellaneousCountry = 'متفرقه 🌐';
 
-          configsDiv.appendChild(block);
-        });
-      })
-      .catch(error => {
-        configsDiv.innerHTML = `<p style="color:red;">⚠️ خطا: ${error.message}</p>`;
-      });
+            closeBtn.onclick = () => qrModal.style.display = "none";
+            window.onclick = (event) => { if (event.target == qrModal) qrModal.style.display = "none"; }
 
-    function copyText(text, btn) {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text)
-          .then(() => {
-            btn.textContent = "✅";
-            setTimeout(() => btn.textContent = "📋 کپی", 1500);
-          })
-          .catch(() => fallbackCopy(text, btn));
-      } else {
-        fallbackCopy(text, btn);
-      }
-    }
+            function openQrModal(config) {
+                modalTitle.textContent = config.name;
+                const cleanedUrl = config.url.replace(/\s/g, '');
+                QRCode.toCanvas(modalQrCanvas, cleanedUrl, { width: 280, margin: 1 });
+                qrModal.style.display = "flex";
+            }
+            
+            async function shareConfig(config) {
+                const cleanedUrl = config.url.replace(/\s/g, '');
+                if (navigator.share) {
+                    try {
+                        await navigator.share({ title: 'V2Ray Config', text: cleanedUrl });
+                    } catch (err) { console.error('Share failed:', err); }
+                } else {
+                    alert('قابلیت اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود.');
+                }
+            }
 
-    function fallbackCopy(text, btn) {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.top = "-1000px";
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        btn.textContent = "✅";
-      } catch (err) {
-        btn.textContent = "❌ خطا";
-      }
-      document.body.removeChild(textarea);
-      setTimeout(() => btn.textContent = "📋 کپی", 1500);
-    }
+            function extractNameFromUrl(url) {
+                try {
+                    const decodedUrl = decodeURIComponent(url);
+                    const parts = decodedUrl.split('#');
+                    return parts.length > 1 && parts[1] ? parts[1] : url.substring(0, 20) + '...';
+                } catch { return url.substring(0, 20) + '...'; }
+            }
 
-    function copyAll() {
-      fetch(configUrl)
-        .then(res => res.text())
-        .then(text => {
-          navigator.clipboard.writeText(text)
-            .then(() => {
-              const btn = document.querySelector('.copy-all');
-              btn.textContent = "✅ همه کپی شد!";
-              setTimeout(() => btn.textContent = "📋 کپی همه کانفیگ‌ها", 2000);
+            function getCountry(configName) {
+                const lowerCaseName = configName.toLowerCase();
+                for (const keyword in countryMap) {
+                    if (lowerCaseName.includes(keyword)) return countryMap[keyword];
+                }
+                return miscellaneousCountry;
+            }
+
+            function renderConfigs(configList) {
+                configsContainer.innerHTML = '';
+                const grid = document.createElement('div');
+                grid.className = 'config-grid';
+
+                configList.forEach((cfg) => {
+                    const card = document.createElement('div');
+                    card.className = 'config-card';
+                    const detailsDiv = document.createElement('div');
+                    detailsDiv.className = 'config-details';
+                    detailsDiv.innerHTML = `<div class="config-name">${cfg.name}</div><div class="config-country">${cfg.country}</div>`;
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'actions';
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'action-btn copy-btn-class';
+                    copyBtn.textContent = 'کپی';
+                    copyBtn.setAttribute('data-clipboard-text', cfg.url.replace(/\s/g, ''));
+                    const qrBtn = document.createElement('button');
+                    qrBtn.className = 'action-btn';
+                    qrBtn.textContent = 'QR';
+                    qrBtn.onclick = () => openQrModal(cfg);
+                    const shareBtn = document.createElement('button');
+                    shareBtn.className = 'action-btn';
+                    shareBtn.textContent = 'Share';
+                    shareBtn.onclick = () => shareConfig(cfg);
+                    actionsDiv.appendChild(copyBtn);
+                    actionsDiv.appendChild(qrBtn);
+                    actionsDiv.appendChild(shareBtn);
+                    card.appendChild(detailsDiv);
+                    card.appendChild(actionsDiv);
+                    grid.appendChild(card);
+                });
+                configsContainer.appendChild(grid);
+
+                new ClipboardJS('.copy-btn-class').on('success', (e) => {
+                    e.trigger.textContent = '✅';
+                    setTimeout(() => { e.trigger.textContent = 'کپی'; }, 2000);
+                    e.clearSelection();
+                });
+            }
+
+            async function loadConfigs() {
+                try {
+                    const response = await fetch('./configs.txt');
+                    if (!response.ok) {
+                        throw new Error(`فایل configs.txt یافت نشد (وضعیت: ${response.status})`);
+                    }
+                    allConfigsText = await response.text();
+                    const configs = allConfigsText.trim().split('\n').filter(Boolean);
+                    
+                    if (configs.length === 0) {
+                       throw new Error("فایل کانفیگ خالی است یا هیچ کانفیگ معتبری در آن وجود ندارد.");
+                    }
+
+                    const configList = configs.map(url => {
+                        const name = extractNameFromUrl(url);
+                        const country = getCountry(name);
+                        return { name, url, country };
+                    });
+
+                    renderConfigs(configList);
+                    infoContainer.textContent = `تعداد ${configList.length} کانفیگ نمایش داده شد.`;
+
+                } catch (error) {
+                    console.error('Failed to load configs:', error);
+                    infoContainer.textContent = `⚠️ خطا: ${error.message}`;
+                    infoContainer.classList.add('error');
+                }
+            }
+            
+            new ClipboardJS('.copy-all', {
+                text: () => allConfigsText
+            }).on('success', (e) => {
+                e.trigger.textContent = "✅ همه کپی شد!";
+                setTimeout(() => { e.trigger.textContent = "📋 کپی همه کانفیگ‌ها"; }, 2000);
+                e.clearSelection();
             });
+
+            loadConfigs();
         });
-    }
-  </script>
+    </script>
 </body>
 </html>
