@@ -2,12 +2,17 @@ name: Scrape V2Ray Configs
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # هر ۶ ساعت یک بار اجرا می‌شود
-  workflow_dispatch: # به شما اجازه می‌دهد این اکشن را به صورت دستی هم اجرا کنید
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+
+    # این بخش جدید اضافه شده است
+    permissions:
+      contents: write
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
