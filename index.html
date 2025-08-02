@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V2V</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
     <style>
         :root {
             --bg-color: #121212;
@@ -31,6 +30,12 @@
             text-align: center;
             margin-bottom: 1em;
             font-size: 2.5em;
+        }
+        p.description {
+            text-align: center;
+            color: #aaa;
+            max-width: 600px;
+            margin: -1em auto 2em;
         }
         button#fetchButton {
             background-color: var(--primary-color);
@@ -114,66 +119,3 @@
     </style>
 </head>
 <body>
-
-    <main>
-        <h1>
-            <span style="color: #28a745;">V</span><span style="color: #ffffff;">2</span><span style="color: #dc3545;">V</span>
-        </h1>
-        <button id="fetchButton">دریافت کانفیگ‌ها</button>
-        <div id="status" style="display: none;"></div>
-        <div id="configs-container"></div>
-    </main>
-    
-    <div id="qrModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h3 id="modal-title">QR Code</h3>
-            <canvas id="modal-qr-code"></canvas>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const fetchButton = document.getElementById('fetchButton');
-            const statusContainer = document.getElementById('status');
-            const configsContainer = document.getElementById('configs-container');
-            const qrModal = document.getElementById('qrModal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalQrCanvas = document.getElementById('modal-qr-code');
-            const closeBtn = document.querySelector('.close-btn');
-
-            const sources = [
-                "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub1.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub2.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub3.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub4.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub5.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub6.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub7.txt","https://raw.githubusercontent.com/barry-far/V2ray-Config/main/Sub8.txt","https://raw.githubusercontent.com/mahdibland/V2RayAggregator/master/sub/sub_merge.txt","https://raw.githubusercontent.com/MrPooyaX/V2Ray/main/sub/mix","https://raw.githubusercontent.com/yebekhe/Configura/main/Sub/Normal/Sub.txt","https://raw.githubusercontent.com/soroushmirzaei/V2Ray-configs/main/All-Configs-base64","https://raw.githubusercontent.com/mrvcoder/V2rayCollector/main/sub/mix_base64","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/all.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vmess.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/vless.txt","https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/trojan.txt","https://raw.githubusercontent.com/youfoundamin/V2rayCollector/main/mixed_iran.txt","https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/All-Configs-for-V2Ray.txt","https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/sub/subscription_base64.txt","https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/sub/sub_merge.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/vless.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/vmess.txt","https://raw.githubusercontent.com/NiREvil/vless/main/sub/trojan.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vless.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/vmess.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/trojan.txt","https://raw.githubusercontent.com/NiREvil/vless/main/XRAY/ss.txt","https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt","https://raw.githubusercontent.com/NiREvil/vless/main/hiddify/All%20%20Warp%20Windscribe%20Poroton%20Hysteria","https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt"
-            ];
-            const countryMap = {
-                'iran': 'ایران 🇮🇷', 'ir': 'ایران 🇮🇷', 'germany': 'آلمان 🇩🇪', 'de': 'آلمان 🇩🇪', 'turkey': 'ترکیه 🇹🇷', 'tr': 'ترکیه 🇹🇷', 'france': 'فرانسه 🇫🇷', 'fr': 'فرانسه 🇫🇷', 'netherlands': 'هلند 🇳🇱', 'nl': 'هلند 🇳🇱', 'usa': 'آمریکا 🇺🇸', 'us': 'آمریکا 🇺🇸', 'canada': 'کانادا 🇨🇦', 'ca': 'کانادا 🇨🇦', 'uk': 'انگلیس 🇬🇧', 'gb': 'انگلیس 🇬🇧', 'singapore': 'سنگاپور 🇸🇬', 'sg': 'سنگاپور 🇸🇬',
-            };
-            const miscellaneousCountry = 'متفرقه 🌐';
-
-            closeBtn.onclick = () => qrModal.style.display = "none";
-            window.onclick = (event) => { if (event.target == qrModal) qrModal.style.display = "none"; }
-
-            function openQrModal(config) {
-                modalTitle.textContent = config.name;
-                const cleanedUrl = config.url.replace(/\s/g, '');
-                QRCode.toCanvas(modalQrCanvas, cleanedUrl, { width: 280, margin: 1 });
-                qrModal.style.display = "flex";
-            }
-            
-            async function shareConfig(config) {
-                const cleanedUrl = config.url.replace(/\s/g, '');
-                if (navigator.share) {
-                    try {
-                        await navigator.share({ title: 'V2Ray Config', text: cleanedUrl });
-                    } catch (err) { console.error('Share failed:', err); }
-                } else {
-                    alert('قابلیت اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود.');
-                }
-            }
-
-            async function fetchFromSource(url) {
-                try {
-                    const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) return [];
-                    const text = await response.text();
