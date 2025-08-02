@@ -15,7 +15,10 @@ export default async function handler(request, response) {
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     response.status(fetchResponse.status);
-    return fetchResponse.body.pipe(response);
+    
+    // کد اصلاح شده در دو خط زیر است
+    const body = await fetchResponse.text();
+    return response.send(body);
 
   } catch (error) {
     console.error(error);
