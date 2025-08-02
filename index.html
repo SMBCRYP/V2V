@@ -38,6 +38,12 @@
             margin-bottom: 1em;
             font-size: 2.5em;
         }
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-top: 2.5em;
+        }
         .action-button {
             background-color: var(--primary-color);
             color: #000;
@@ -128,6 +134,12 @@
         <button id="copyAllButton" class="action-button" style="display: none;">📋 کپی همه کانفیگ‌ها</button>
         <div id="info" class="info-box"></div>
         <div id="configs-container"></div>
+        
+        <div id="live-results-section" style="display: none;">
+            <h2>نتایج جستجوی زنده</h2>
+            <div id="live-info" class="info-box"></div>
+            <div id="live-configs-container"></div>
+        </div>
     </main>
     
     <div id="qrModal" class="modal">
@@ -144,6 +156,9 @@
             const copyAllButton = document.getElementById('copyAllButton');
             const infoContainer = document.getElementById('info');
             const configsContainer = document.getElementById('configs-container');
+            const liveResultsSection = document.getElementById('live-results-section');
+            const liveInfoContainer = document.getElementById('live-info');
+            const liveConfigsContainer = document.getElementById('live-configs-container');
             const qrModal = document.getElementById('qrModal');
             const modalTitle = document.getElementById('modal-title');
             const modalQrCanvas = document.getElementById('modal-qr-code');
@@ -197,15 +212,14 @@
                 return miscellaneousCountry;
             }
 
-            function renderConfigs(configs, source) {
-                allConfigsText = configs.join('\n');
-                const configList = configs.map(url => {
+            function renderConfigs(configArray, targetContainer) {
+                const configList = configArray.map(url => {
                     const name = extractNameFromUrl(url);
                     const country = getCountry(name);
                     return { name, url, country };
                 });
-
-                configsContainer.innerHTML = '';
+                
+                targetContainer.innerHTML = '';
                 const grid = document.createElement('div');
                 grid.className = 'config-grid';
 
@@ -236,7 +250,7 @@
                     card.appendChild(actionsDiv);
                     grid.appendChild(card);
                 });
-                configsContainer.appendChild(grid);
+                targetContainer.appendChild(grid);
 
                 if (clipboard) clipboard.destroy();
                 clipboard = new ClipboardJS('.copy-btn-class');
@@ -245,9 +259,6 @@
                     setTimeout(() => { e.trigger.textContent = 'کپی'; }, 2000);
                     e.clearSelection();
                 });
-                
-                infoContainer.textContent = `تعداد ${configList.length} کانفیگ از ${source} نمایش داده شد.`;
-                copyAllButton.style.display = 'block';
             }
 
             async function loadConfigsFromFile() {
@@ -257,28 +268,29 @@
                 try {
                     const response = await fetch('./configs.txt');
                     if (!response.ok) throw new Error(`فایل یافت نشد`);
-                    const text = await response.text();
-                    const configs = text.trim().split('\n').filter(Boolean);
+                    allConfigsText = await response.text();
+                    const configs = allConfigsText.trim().split('\n').filter(Boolean);
                     if (configs.length === 0) throw new Error("فایل خالی است");
-                    renderConfigs(configs, 'مخزن آماده');
+                    renderConfigs(configs, configsContainer);
+                    infoContainer.textContent = `تعداد ${configs.length} کانفیگ از مخزن آماده نمایش داده شد.`;
+                    copyAllButton.style.display = 'block';
                 } catch (error) {
                     infoContainer.textContent = `⚠️ مخزن کانفیگ‌های آماده خالی است. از جستجوی زنده استفاده کنید.`;
                     infoContainer.classList.add('error');
+                    copyAllButton.style.display = 'none';
                 }
             }
             
             async function loadConfigsLive() {
                 liveFetchButton.disabled = true;
                 liveFetchButton.textContent = 'در حال پردازش...';
-                infoContainer.style.display = 'block';
-                infoContainer.classList.remove('error');
-                infoContainer.textContent = 'شروع فرآیند جستجوی زنده...';
-                configsContainer.innerHTML = '';
-                copyAllButton.style.display = 'none';
-
+                liveResultsSection.style.display = 'block';
+                liveInfoContainer.classList.remove('error');
+                liveConfigsContainer.innerHTML = '';
+                
                 const allConfigs = new Set();
                 for (let i = 0; i < sources.length; i++) {
-                    infoContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}`;
+                    liveInfoContainer.textContent = `درحال دریافت از منبع ${i + 1}/${sources.length}`;
                     try {
                         const proxyUrl = `/api/proxy?url=${encodeURIComponent(sources[i])}`;
                         const response = await fetch(proxyUrl);
@@ -297,10 +309,11 @@
                 }
 
                 if (allConfigs.size === 0) {
-                    infoContainer.textContent = 'هیچ کانفیگ معتبری در جستجوی زنده یافت نشد.';
-                    infoContainer.classList.add('error');
+                    liveInfoContainer.textContent = 'در حال حاضر یافت نشد';
+                    liveInfoContainer.classList.add('error');
                 } else {
-                    renderConfigs(Array.from(allConfigs), 'جستجوی زنده');
+                    renderConfigs(Array.from(allConfigs), liveConfigsContainer);
+                    liveInfoContainer.textContent = `تعداد ${allConfigs.size} کانفیگ در جستجوی زنده یافت شد.`;
                 }
 
                 liveFetchButton.disabled = false;
