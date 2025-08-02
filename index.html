@@ -8,13 +8,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            background-color: #f0f2f5; /* پس‌زمینه خاکستری روشن */
+            background-color: #f0f2f5;
             color: #333;
             margin: 0;
             padding: 20px;
         }
         .container {
-            background: #ffffff; /* پس‌زمینه سفید برای کادر اصلی */
+            background: #ffffff;
             padding: 25px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -126,7 +126,7 @@
         
         async function fetchFromSource(url) {
             try {
-                const proxyUrl = `/api/?url=${encodeURIComponent(url)}`;
+                const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
                 const response = await fetch(proxyUrl);
                 if (!response.ok) {
                     console.error(`Proxy returned an error for ${url}: ${response.status}`);
