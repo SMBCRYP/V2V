@@ -8,8 +8,6 @@ on:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
-    # این بخش جدید اضافه شده است
     permissions:
       contents: write
 
@@ -26,6 +24,9 @@ jobs:
         run: pip install requests
 
       - name: Run scraper
+        env:
+          GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
+          GITLAB_SNIPPET_ID: ${{ secrets.GITLAB_SNIPPET_ID }}
         run: python scraper.py
 
       - name: Commit and push if changed
