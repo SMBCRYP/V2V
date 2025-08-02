@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>V2V</title>
     <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
     <style>
         :root {
             --bg-color: #121212;
@@ -214,10 +213,22 @@
                     actionsDiv.className = 'actions';
                     
                     const copyBtn = document.createElement('button');
-                    copyBtn.className = 'action-btn copy-btn-class';
+                    copyBtn.className = 'action-btn';
                     copyBtn.textContent = 'کپی';
-                    const cleanedUrl = cfg.url.replace(/\s/g, '');
-                    copyBtn.setAttribute('data-clipboard-text', cleanedUrl);
+                    
+                    // --- START OF NEW IMPLEMENTATION ---
+                    copyBtn.onclick = async () => {
+                        const cleanedUrl = cfg.url.replace(/\s/g, '');
+                        try {
+                            await navigator.clipboard.writeText(cleanedUrl);
+                            copyBtn.textContent = 'کپی شد!';
+                        } catch (err) {
+                            console.error('Clipboard error:', err);
+                            copyBtn.textContent = 'خطا!';
+                        }
+                        setTimeout(() => { copyBtn.textContent = 'کپی'; }, 2000);
+                    };
+                    // --- END OF NEW IMPLEMENTATION ---
 
                     const qrBtn = document.createElement('button');
                     qrBtn.className = 'action-btn';
@@ -237,17 +248,6 @@
                     grid.appendChild(card);
                 });
                 configsContainer.appendChild(grid);
-
-                const clipboard = new ClipboardJS('.copy-btn-class');
-                clipboard.on('success', function(e) {
-                    e.trigger.textContent = 'کپی شد!';
-                    setTimeout(() => { e.trigger.textContent = 'کپی'; }, 2000);
-                    e.clearSelection();
-                });
-                clipboard.on('error', function(e) {
-                    e.trigger.textContent = 'خطا!';
-                    setTimeout(() => { e.trigger.textContent = 'کپی'; }, 2000);
-                });
             }
 
             fetchButton.addEventListener('click', async () => {
