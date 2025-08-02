@@ -2,7 +2,7 @@ name: Scrape V2Ray Configs
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */4 * * *' # هر ۴ ساعت یک بار اجرا می‌شود
   workflow_dispatch:
 
 jobs:
@@ -27,6 +27,7 @@ jobs:
         env:
           GITLAB_API_TOKEN: ${{ secrets.GITLAB_API_TOKEN }}
           GITLAB_SNIPPET_ID: ${{ secrets.GITLAB_SNIPPET_ID }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: python scraper.py
 
       - name: Commit and push if changed
