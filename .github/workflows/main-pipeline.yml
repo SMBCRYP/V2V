@@ -1,17 +1,17 @@
 name: 'V2V Complete Deploy'
 
 on:
-#  schedule:
-#    - cron: '0 */3 * * *'
-#  push:
-#    branches:
-#      - main
-#    paths:
-#      - 'scraper.py'
-#      - 'worker.js'
-#      - 'index.html'
-#      - 'index.js'
-    workflow_dispatch:
+  schedule:
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scraper.py'
+      - 'worker.js'
+      - 'index.html'
+      - 'index.js'
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ permissions:
 jobs:
   scrape_and_deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     
     steps:
     - name: Checkout Repository
@@ -33,7 +33,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install Python Dependencies
