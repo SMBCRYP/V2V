@@ -373,10 +373,12 @@ const genClashForXray = (cfgs) => {
 const genSingboxSubscription = (cfgs) => {
     const out = [];
     const seen = new Set();
+
     for (let i = 0; i < cfgs.length; i++) {
         try {
             let o = null;
             let k = null;
+            
             if (cfgs[i].startsWith('vmess://')) {
                 const v = parseVmess(cfgs[i]);
                 if (!v) continue;
@@ -507,60 +509,101 @@ const genSingboxSubscription = (cfgs) => {
                     }
                 };
             }
+
             if (o && k) {
                 seen.add(k);
                 out.push(o);
             }
         } catch {}
     }
+
     if (!out.length) return null;
+
+    const tags = out.map(x => x.tag);
+
     return JSON.stringify({
-        log: { level: 'info', timestamp: true },
-        dns: {
-            servers: [
-                { tag: 'google', address: '8.8.8.8', strategy: 'prefer_ipv4' },
-                { tag: 'local', address: 'local', detour: 'direct' }
-            ],
-            rules: [{ geosite: 'ir', server: 'local' }],
-            final: 'google'
+        "log": {
+            "level": "error",
+            "timestamp": true
         },
-        inbounds: [
-            { tag: 'mixed-in', type: 'mixed', listen: '127.0.0.1', listen_port: 7890 }
-        ],
-        outbounds: [
+        "dns": {
+            "final": "local-dns",
+            "rules": [
+                { "clash_mode": "Global", "server": "proxy-dns", "source_ip_cidr": ["172.19.0.0/30"] },
+                { "server": "proxy-dns", "source_ip_cidr": ["172.19.0.0/30"] },
+                { "clash_mode": "Direct", "server": "direct-dns" }
+            ],
+            "servers": [
+                { "address": "tcp://8.8.8.8", "address_resolver": "local-dns", "detour": "proxy", "tag": "proxy-dns" },
+                { "address": "local", "detour": "direct", "tag": "local-dns" },
+                { "address": "rcode://success", "tag": "block" },
+                { "address": "local", "detour": "direct", "tag": "direct-dns" }
+            ],
+            "strategy": "prefer_ipv4"
+        },
+        "inbounds": [
             {
-                tag: 'V2V-AUTO',
-                type: 'urltest',
-                outbounds: out.map(x => x.tag),
-                url: 'http://www.gstatic.com/generate_204',
-                interval: '5m',
-                tolerance: 50
+                "type": "tun",
+                "tag": "tun-in",
+                "interface_name": "tun0",
+                "inet4_address": "172.19.0.1/30",
+                "mtu": 9000,
+                "auto_route": true,
+                "strict_route": false,
+                "stack": "system",
+                "sniff": true,
+                "platform": {
+                    "http_proxy": {
+                        "enabled": true,
+                        "server": "127.0.0.1",
+                        "server_port": 2080
+                    }
+                }
             },
             {
-                tag: 'V2V-SELECT',
-                type: 'selector',
-                outbounds: ['V2V-AUTO', ...out.map(x => x.tag)],
-                default: 'V2V-AUTO'
-            },
-            ...out,
-            { tag: 'direct', type: 'direct' },
-            { tag: 'block', type: 'block' }
+                "type": "mixed",
+                "tag": "mixed-in",
+                "listen": "127.0.0.1",
+                "listen_port": 2080,
+                "sniff": true
+            }
         ],
-        route: {
-            rules: [
-                { geoip: 'ir', outbound: 'direct' },
-                { geoip: 'private', outbound: 'direct' },
-                { geosite: 'category-ads-all', outbound: 'block' }
-            ],
-            final: 'V2V-SELECT',
-            auto_detect_interface: true
-        },
-        experimental: {
-            cache_file: { enabled: true },
-            clash_api: { external_controller: '127.0.0.1:9090' }
+        "outbounds": [
+            {
+                "tag": "proxy",
+                "type": "selector",
+                "outbounds": ["auto", ...tags, "direct"]
+            },
+            {
+                "tag": "auto",
+                "type": "urltest",
+                "outbounds": tags,
+                "url": "http://www.gstatic.com/generate_204",
+                "interval": "10m",
+                "tolerance": 50
+            },
+            {
+                "tag": "direct",
+                "type": "direct"
+            },
+            {
+                "tag": "block",
+                "type": "block"
+            },
+            ...out
+        ],
+        "route": {
+            "auto_detect_interface": true,
+            "final": "proxy",
+            "rules": [
+                { "clash_mode": "Direct", "outbound": "direct" },
+                { "clash_mode": "Global", "outbound": "proxy" },
+                { "protocol": "dns", "action": "hijack-dns" }
+            ]
         }
     }, null, 2);
 };
+
 
 const genClashForSingbox = (cfgs) => {
     const content = genClashForXray(cfgs);
@@ -652,4 +695,3 @@ export default {
         }
     }
 };
-
