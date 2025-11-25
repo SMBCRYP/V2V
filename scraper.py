@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import requests
 import base64
 import os
@@ -247,7 +246,7 @@ def fetch_static(sources: List[str]) -> Set[str]:
             return set()
         try:
             time.sleep(random.uniform(0.2, 1.0))
-            response = requests.get(url, headers=HEADERS, timeout=25, verify=False)
+            response = requests.get(url, headers=HEADERS, timeout=25)
             response.raise_for_status()
             cfgs = extract(response.text)
             if cfgs:
