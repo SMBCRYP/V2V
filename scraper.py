@@ -75,7 +75,7 @@ def norm_proto(p: str) -> str:
     return p
 
 def parse_tuic(cfg: str) -> Optional[Dict]:
-    """Advanced TUIC parser with comprehensive validation"""
+    """TUIC parser with comprehensive validation"""
     try:
         if not cfg or not cfg.startswith('tuic://'):
             return None
@@ -119,9 +119,46 @@ def parse_tuic(cfg: str) -> Optional[Dict]:
         }
     except:
         return None
+        
+def parse_ss(cfg: str) -> Optional[Dict]:
+    """Shadowsocks parser, handling both Plain and Base64 formats"""
+    try:
+        if not cfg or not cfg.startswith('ss://'):
+            return None
+        
+        u = urlparse(cfg)
+        if '#' in cfg and not u.fragment:
+            u = urlparse(cfg.split('#')[0])
+
+        if not u.hostname or not u.port:
+            return None
+        
+        method, password = None, None
+
+        if u.password:
+            method = u.username
+            password = u.password
+        else:
+            decoded = b64d(u.username)
+            if decoded and ':' in decoded:
+                method, password = decoded.split(':', 1)
+        
+        if not method or not password:
+            return None
+            
+        return {
+            'server': u.hostname,
+            'port': int(u.port),
+            'method': method,
+            'password': password,
+            'name': unquote(u.fragment) if u.fragment else f"{method}:{u.port}"
+        }
+    except:
+        return None
+
 
 def parse_hy2(cfg: str) -> Optional[Dict]:
-    """Advanced Hysteria2 parser"""
+    """Hysteria2 parser"""
     try:
         if not cfg or not cfg.startswith(('hysteria2://', 'hy2://')):
             return None
@@ -174,12 +211,13 @@ def is_valid(cfg: str) -> bool:
                 return False
         
         if p == 'tuic':
-            info = parse_tuic(cfg)
-            return info is not None
+            return parse_tuic(cfg) is not None
         
         if p == 'hy2':
-            info = parse_hy2(cfg)
-            return info is not None
+            return parse_hy2(cfg) is not None
+        
+        if p == 'ss':
+            return parse_ss(cfg) is not None
         
         if not u.hostname or not u.port:
             return False
@@ -188,7 +226,7 @@ def is_valid(cfg: str) -> bool:
         if port <= 0 or port > 65535:
             return False
         
-        if p in ['vless', 'trojan', 'ss']:
+        if p in ['vless', 'trojan']:
             return bool(u.username)
         
         return True
@@ -369,8 +407,11 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
             sni = q.get('sni', [host])[0]
         
         elif p == 'ss':
-            host = u.hostname
-            port = int(u.port or 0)
+            info = parse_ss(cfg)
+            if not info:
+                return None
+            host = info['server']
+            port = info['port']
         
         else:
             return None
@@ -465,34 +506,46 @@ def balance(tested: List[Tuple[str, int, str]], protocols: Set[str]) -> List[str
     return selected
 
 def gen_clash(cfgs: List[str]) -> Optional[str]:
-    """Generate Clash YAML"""
+    """Generate Clash Meta Config based on the Golden Template of REvil"""
     if not cfgs:
         return None
     
-    prx = []
+    proxies = []
     seen = set()
-    
+
     for cfg in cfgs:
         try:
             u = urlparse(cfg)
             p = norm_proto(u.scheme)
             h = get_hash(cfg)
             
-            if h in seen or p not in XRAY_PROTOCOLS:
-                continue
+            if h in seen: continue
             seen.add(h)
             
-            name = f"{p}{h[:7]}"
-            proxy = {'name': name, 'server': u.hostname, 'port': int(u.port), 'skip-cert-verify': True}
+            name = f"{p}-{h[:6]}"
+
+            proxy = {
+                'name': name,
+                'server': u.hostname,
+                'port': int(u.port),
+                'type': p,
+                'udp': True,
+                'skip-cert-verify': True
+            }
+
+            if p == 'ss':
+                info = parse_ss(cfg)
+                if not info: continue
+                proxy['cipher'] = info['method']
+                proxy['password'] = info['password']
+                proxy['type'] = 'ss'
             
-            if p == 'vmess':
+            elif p == 'vmess':
                 d = json.loads(b64d(cfg.replace("vmess://", "")))
                 proxy.update({
-                    'type': 'vmess',
                     'uuid': d.get('id'),
                     'alterId': int(d.get('aid', 0)),
-                    'cipher': d.get('scy', 'auto'),
-                    'udp': True
+                    'cipher': d.get('scy', 'auto')
                 })
                 if d.get('net') == 'ws':
                     proxy['network'] = 'ws'
@@ -500,76 +553,269 @@ def gen_clash(cfgs: List[str]) -> Optional[str]:
                 if d.get('tls') == 'tls':
                     proxy['tls'] = True
                     proxy['servername'] = d.get('sni') or d.get('host') or u.hostname
-                    
+
             elif p == 'vless':
                 q = parse_qs(u.query)
-                proxy.update({'type': 'vless', 'uuid': u.username, 'udp': True})
+                proxy['uuid'] = u.username
                 if q.get('type', [''])[0] == 'ws':
                     proxy['network'] = 'ws'
                     proxy['ws-opts'] = {'path': q.get('path', ['/'])[0], 'headers': {'Host': q.get('host', [u.hostname])[0]}}
+                elif q.get('type', [''])[0] == 'grpc':
+                    proxy['network'] = 'grpc'
+                    proxy['grpc-opts'] = {'grpc-service-name': q.get('serviceName', [''])[0]}
+                
                 if q.get('security', [''])[0] == 'tls':
                     proxy['tls'] = True
                     proxy['servername'] = q.get('sni', [u.hostname])[0]
                     if q.get('flow'): proxy['flow'] = q.get('flow')[0]
-                        
+                elif q.get('security', [''])[0] == 'reality':
+                    proxy['tls'] = True
+                    proxy['servername'] = q.get('sni', [u.hostname])[0]
+                    proxy['reality-opts'] = {'public-key': q.get('pbk', [''])[0], 'short-id': q.get('sid', [''])[0]}
+                    if q.get('fp'): proxy['client-fingerprint'] = q.get('fp')[0]
+                    if q.get('flow'): proxy['flow'] = 'xtls-rprx-vision'
+
             elif p == 'trojan':
                 q = parse_qs(u.query)
-                proxy.update({'type': 'trojan', 'password': u.username, 'udp': True, 'sni': q.get('sni', [u.hostname])[0]})
-                
-            elif p == 'ss':
-                d = b64d(u.username)
-                if d and ':' in d:
-                    idx = d.index(':')
-                    proxy.update({'type': 'ss', 'cipher': d[:idx], 'password': d[idx+1:], 'udp': True})
-            
-            if proxy.get('type'):
-                prx.append(proxy)
+                proxy['password'] = u.username
+                proxy['sni'] = q.get('sni', [u.hostname])[0]
+                if q.get('type', [''])[0] == 'ws':
+                    proxy['network'] = 'ws'
+                    proxy['ws-opts'] = {'path': q.get('path', ['/'])[0], 'headers': {'Host': q.get('host', [u.hostname])[0]}}
+
+            elif p == 'hy2':
+                info = parse_hy2(cfg)
+                if not info: continue
+                proxy['type'] = 'hysteria2'
+                proxy['password'] = info['password']
+                proxy['sni'] = info['sni']
+                if info['obfs']:
+                    proxy['obfs'] = info['obfs']
+                    proxy['obfs-password'] = info['obfs_password']
+
+            elif p == 'tuic':
+                info = parse_tuic(cfg)
+                if not info: continue
+                proxy['type'] = 'tuic'
+                proxy['uuid'] = info['uuid']
+                proxy['password'] = info['password']
+                proxy['server-name'] = info['sni']
+                proxy['congestion-controller'] = info['congestion']
+                proxy['udp-relay-mode'] = info['udp_relay_mode']
+                if info['alpn']: proxy['alpn'] = [info['alpn']]
+
+            proxies.append(proxy)
         except:
             continue
-    
-    if not prx:
+
+    if not proxies:
         return None
-    
-    names = [x['name'] for x in prx]
-    y = 'proxies:\n'
-    
-    for x in prx:
-        y += f"  - name: {x['name']}\n    type: {x['type']}\n    server: {x['server']}\n    port: {x['port']}\n"
-        
-        if x['type'] == 'vmess':
-            y += f"    uuid: {x['uuid']}\n    alterId: {x['alterId']}\n    cipher: {x['cipher']}\n    udp: true\n"
-            if x.get('network'):
-                y += f"    network: {x['network']}\n"
-                if x.get('ws-opts'):
-                    y += f"    ws-opts:\n      path: {x['ws-opts']['path']}\n      headers:\n        Host: {x['ws-opts']['headers']['Host']}\n"
-            if x.get('tls'):
-                y += f"    tls: true\n    servername: {x['servername']}\n"
-            y += "    skip-cert-verify: true\n"
-            
-        elif x['type'] == 'vless':
-            y += f"    uuid: {x['uuid']}\n    udp: true\n"
-            if x.get('network'):
-                y += f"    network: {x['network']}\n"
-                if x.get('ws-opts'):
-                    y += f"    ws-opts:\n      path: {x['ws-opts']['path']}\n      headers:\n        Host: {x['ws-opts']['headers']['Host']}\n"
-            if x.get('tls'):
-                y += f"    tls: true\n    servername: {x['servername']}\n"
-                if x.get('flow'): y += f"    flow: {x['flow']}\n"
-            y += "    skip-cert-verify: true\n"
-            
-        elif x['type'] == 'trojan':
-            y += f"    password: {x['password']}\n    udp: true\n    sni: {x['sni']}\n    skip-cert-verify: true\n"
-            
-        elif x['type'] == 'ss':
-            y += f"    cipher: {x['cipher']}\n    password: {x['password']}\n    udp: true\n"
-    
-    y += '\nproxy-groups:\n  - name: V2V-Auto\n    type: url-test\n    proxies:\n'
-    for n in names: y += f"      - {n}\n"
-    y += '    url: http://www.gstatic.com/generate_204\n    interval: 300\n\n'
-    y += '  - name: V2V-Select\n    type: select\n    proxies:\n      - V2V-Auto\n'
-    for n in names: y += f"      - {n}\n"
-    y += '\nrules:\n  - GEOIP,IR,DIRECT\n  - MATCH,V2V-Select\n'
-    
+
+    proxy_names = [p['name'] for p in proxies]
+
+    y = """mixed-port: 7890
+http-port: 7891
+socks-port: 7892
+ipv6: true
+allow-lan: false
+mode: rule
+log-level: warning
+disable-keep-alive: false
+keep-alive-idle: 10
+keep-alive-interval: 15
+unified-delay: true
+geo-auto-update: true
+geo-update-interval: 168
+external-controller: 127.0.0.1:9090
+external-ui-url: https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip
+external-ui: ui
+external-controller-cors:
+  allow-origins:
+    - '*'
+  allow-private-network: true
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: true
+  respect-rules: true
+  use-system-hosts: false
+  nameserver:
+    - https://8.8.8.8/dns-query#⚪ REvil
+    - https://208.67.222.222/dns-query
+    - https://dns.alidns.com/dns-query
+    - 223.5.5.5
+    - 8.8.8.8  
+    - 1.1.1.1 
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 8.8.8.8#DIRECT
+  nameserver-policy:
+    raw.githubusercontent.com: 8.8.8.8#DIRECT
+    time.apple.com: 8.8.8.8#DIRECT
+    www.gstatic.com: system
+    rule-set:ir:
+      - 8.8.8.8#DIRECT
+  fallback:
+    - tls://1.1.1.1
+    - tcp://8.8.8.8
+    - tls://dns.quad9.net
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - geosite:private
+tun:
+  enable: true
+  stack: system
+  auto-route: true
+  strict-route: true
+  endpoint-independent-nat: false
+  auto-detect-interface: true
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  mtu: 9000
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080
+        - 8880
+        - 2052
+        - 2082
+        - 2086
+        - 2095
+    TLS:
+      ports:
+        - 443
+        - 8443
+        - 2053
+        - 2083
+        - 2087
+        - 2096
+"""
+
+    y += "proxies:\n"
+    for p in proxies:
+        y += f"  - name: {p['name']}\n"
+        y += f"    type: {p['type']}\n"
+        y += f"    server: {p['server']}\n"
+        y += f"    port: {p['port']}\n"
+        y += f"    udp: true\n"
+        y += f"    skip-cert-verify: true\n"
+
+        for key, val in p.items():
+            if key not in ['name', 'type', 'server', 'port', 'udp', 'skip-cert-verify']:
+                if isinstance(val, bool):
+                    y += f"    {key}: {str(val).lower()}\n"
+                elif isinstance(val, dict):
+                    y += f"    {key}:\n"
+                    for k, v in val.items():
+                        y += f"      {k}: {v}\n"
+                elif isinstance(val, list):
+                     y += f"    {key}: [{', '.join(val)}]\n"
+                else:
+                    y += f"    {key}: {val}\n"
+
+    y += "\nproxy-groups:\n"
+    y += "  - name: ⚪ REvil\n"
+    y += "    type: select\n"
+    y += "    proxies:\n"
+    y += "      - 🟢 AUTO\n"
+    y += "      - DIRECT\n"
+    for name in proxy_names:
+        y += f"      - {name}\n"
+
+    y += "\n  - name: 🟢 AUTO\n"
+    y += "    type: url-test\n"
+    y += "    url: https://www.gstatic.com/generate_204\n"
+    y += "    interval: 180\n"
+    y += "    tolerance: 50\n"
+    y += "    proxies:\n"
+    for name in proxy_names:
+        y += f"      - {name}\n"
+
+    y += """
+rule-providers:
+  phishing:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.txt"
+    path: ./ruleset/phishing.txt
+    interval: 86400
+  malware:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.txt"
+    path: ./ruleset/malware.txt
+    interval: 86400
+  cryptominers:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.txt"
+    path: ./ruleset/cryptominers.txt
+    interval: 86400
+  category-ads-all:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.txt"
+    path: ./ruleset/category-ads-all.txt
+    interval: 86400
+  private:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.yaml"
+    path: ./ruleset/private.yaml
+    interval: 86400
+  private-cidr:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.yaml"
+    path: ./ruleset/private-cidr.yaml
+    interval: 86400
+  ir:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/ir.txt"
+    path: ./ruleset/ir.txt
+    interval: 86400
+  ir-cidr:
+    type: http
+    format: text
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/ircidr.txt"
+    path: ./ruleset/ir-cidr.txt
+    interval: 86400
+rules:
+  - RULE-SET,phishing,REJECT
+  - RULE-SET,malware,REJECT
+  - RULE-SET,cryptominers,REJECT
+  - RULE-SET,category-ads-all,REJECT
+  - RULE-SET,private,DIRECT
+  - RULE-SET,private-cidr,DIRECT,no-resolve
+  - RULE-SET,ir,DIRECT
+  - RULE-SET,ir-cidr,DIRECT,no-resolve
+  - MATCH,⚪ REvil
+ntp:
+  enable: true
+  server: time.apple.com
+  port: 123
+  interval: 30
+"""
     return y
 
 def main():

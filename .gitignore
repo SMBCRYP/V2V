@@ -11,9 +11,14 @@ ENV/
 
 # Node
 node_modules/
+package-lock.json
 npm-debug.log
 yarn-error.log
-.vercel
+dist/
+build/
+*.exe
+*.tar.gz
+*.db
 
 # Wrangler
 .wrangler/
@@ -28,6 +33,7 @@ Thumbs.db
 
 # IDE
 .vscode/
+.vercel/
 .idea/
 *.sublime-*
 

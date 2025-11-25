@@ -201,194 +201,6 @@ const genXraySubscription = (cfgs) => {
     return b64e(valid.join('\n'));
 };
 
-const genClashForXray = (cfgs) => {
-    const prx = [];
-    const seen = new Set();
-    for (let i = 0; i < cfgs.length; i++) {
-        try {
-            let p = null;
-            let k = null;
-            if (cfgs[i].startsWith('vmess://')) {
-                const v = parseVmess(cfgs[i]);
-                if (!v) continue;
-                k = `vm${v.s}${v.p}${v.u}`;
-                if (seen.has(k)) continue;
-                p = {
-                    name: uid('vm', v.s, i),
-                    type: 'vmess',
-                    server: sanitize(v.s),
-                    port: v.p,
-                    uuid: sanitize(v.u),
-                    alterId: v.a,
-                    cipher: sanitize(v.c),
-                    udp: true,
-                    'skip-cert-verify': true
-                };
-                if (v.n === 'ws') {
-                    p.network = 'ws';
-                    p['ws-opts'] = {
-                        path: sanitize(v.path),
-                        headers: { Host: sanitize(v.host) }
-                    };
-                }
-                if (v.t) {
-                    p.tls = true;
-                    p.servername = sanitize(v.sni);
-                }
-            } else if (cfgs[i].startsWith('vless://')) {
-                const v = parseVless(cfgs[i]);
-                if (!v) continue;
-                k = `vl${v.s}${v.p}${v.u}`;
-                if (seen.has(k)) continue;
-                p = {
-                    name: uid('vl', v.s, i),
-                    type: 'vless',
-                    server: sanitize(v.s),
-                    port: v.p,
-                    uuid: sanitize(v.u),
-                    udp: true,
-                    'skip-cert-verify': true
-                };
-                if (v.n === 'ws') {
-                    p.network = 'ws';
-                    p['ws-opts'] = {
-                        path: sanitize(v.path),
-                        headers: { Host: sanitize(v.host) }
-                    };
-                }
-                if (v.t) {
-                    p.tls = true;
-                    p.servername = sanitize(v.sni);
-                    if (v.flow) p.flow = sanitize(v.flow);
-                }
-            } else if (cfgs[i].startsWith('trojan://')) {
-                const v = parseTrojan(cfgs[i]);
-                if (!v) continue;
-                k = `tr${v.s}${v.p}${v.pw}`;
-                if (seen.has(k)) continue;
-                p = {
-                    name: uid('tr', v.s, i),
-                    type: 'trojan',
-                    server: sanitize(v.s),
-                    port: v.p,
-                    password: sanitize(v.pw),
-                    udp: true,
-                    sni: sanitize(v.sni),
-                    'skip-cert-verify': true
-                };
-            } else if (cfgs[i].startsWith('ss://')) {
-                const v = parseSs(cfgs[i]);
-                if (!v) continue;
-                k = `ss${v.s}${v.p}${v.m}`;
-                if (seen.has(k)) continue;
-                p = {
-                    name: uid('ss', v.s, i),
-                    type: 'ss',
-                    server: sanitize(v.s),
-                    port: v.p,
-                    cipher: sanitize(v.m),
-                    password: sanitize(v.pw),
-                    udp: true
-                };
-            }
-            if (p && k) {
-                seen.add(k);
-                prx.push(p);
-            }
-        } catch {}
-    }
-    if (!prx.length) return null;
-    const n = prx.map(x => x.name);
-    let y = '# Clash Meta for Xray - V2V Signature\n\n';
-    y += 'port: 7890\n';
-    y += 'socks-port: 7891\n';
-    y += 'allow-lan: true\n';
-    y += 'mode: rule\n';
-    y += 'log-level: info\n';
-    y += 'external-controller: 127.0.0.1:9090\n\n';
-    y += 'dns:\n';
-    y += '  enable: true\n';
-    y += '  listen: 0.0.0.0:53\n';
-    y += '  enhanced-mode: fake-ip\n';
-    y += '  fake-ip-range: 198.18.0.1/16\n';
-    y += '  nameserver:\n';
-    y += '    - 8.8.8.8\n';
-    y += '    - 1.1.1.1\n';
-    y += '  fallback:\n';
-    y += '    - https://dns.google/dns-query\n\n';
-    y += 'proxies:\n';
-    for (const x of prx) {
-        y += `  - name: "${x.name}"\n`;
-        y += `    type: ${x.type}\n`;
-        y += `    server: ${x.server}\n`;
-        y += `    port: ${x.port}\n`;
-        if (x.type === 'vmess') {
-            y += `    uuid: ${x.uuid}\n`;
-            y += `    alterId: ${x.alterId}\n`;
-            y += `    cipher: ${x.cipher}\n`;
-            y += `    udp: true\n`;
-            if (x.network) {
-                y += `    network: ${x.network}\n`;
-                if (x['ws-opts']) {
-                    y += `    ws-opts:\n`;
-                    y += `      path: "${x['ws-opts'].path}"\n`;
-                    y += `      headers:\n`;
-                    y += `        Host: ${x['ws-opts'].headers.Host}\n`;
-                }
-            }
-            if (x.tls) {
-                y += `    tls: true\n`;
-                y += `    servername: ${x.servername}\n`;
-            }
-            y += `    skip-cert-verify: true\n`;
-        } else if (x.type === 'vless') {
-            y += `    uuid: ${x.uuid}\n`;
-            y += `    udp: true\n`;
-            if (x.network) {
-                y += `    network: ${x.network}\n`;
-                if (x['ws-opts']) {
-                    y += `    ws-opts:\n`;
-                    y += `      path: "${x['ws-opts'].path}"\n`;
-                    y += `      headers:\n`;
-                    y += `        Host: ${x['ws-opts'].headers.Host}\n`;
-                }
-            }
-            if (x.tls) {
-                y += `    tls: true\n`;
-                y += `    servername: ${x.servername}\n`;
-                if (x.flow) y += `    flow: ${x.flow}\n`;
-            }
-            y += `    skip-cert-verify: true\n`;
-        } else if (x.type === 'trojan') {
-            y += `    password: ${x.password}\n`;
-            y += `    udp: true\n`;
-            y += `    sni: ${x.sni}\n`;
-            y += `    skip-cert-verify: true\n`;
-        } else if (x.type === 'ss') {
-            y += `    cipher: ${x.cipher}\n`;
-            y += `    password: ${x.password}\n`;
-            y += `    udp: true\n`;
-        }
-    }
-    y += '\nproxy-groups:\n';
-    y += '  - name: "V2V-AUTO"\n';
-    y += '    type: url-test\n';
-    y += '    proxies:\n';
-    for (const name of n) y += `      - "${name}"\n`;
-    y += '    url: http://www.gstatic.com/generate_204\n';
-    y += '    interval: 300\n';
-    y += '    tolerance: 50\n\n';
-    y += '  - name: "V2V-SELECT"\n';
-    y += '    type: select\n';
-    y += '    proxies:\n';
-    y += '      - V2V-AUTO\n';
-    for (const name of n) y += `      - "${name}"\n`;
-    y += '\nrules:\n';
-    y += '  - GEOIP,IR,DIRECT\n';
-    y += '  - MATCH,V2V-SELECT\n';
-    return y;
-};
-
 const genSingboxSubscription = (cfgs) => {
     const out = [];
     const seen = new Set();
@@ -686,10 +498,361 @@ const genSingboxSubscription = (cfgs) => {
     }, null, 2);
 };
 
+const genClashSub = (cfgs) => {
+    const prx = [];
+    const seen = new Set();
 
-const genClashForSingbox = (cfgs) => {
-    const content = genClashForXray(cfgs);
-    return content ? content.replace('Xray', 'Singbox') : null;
+    for (let i = 0; i < cfgs.length; i++) {
+        try {
+            let p = null;
+            let k = null;
+
+            if (cfgs[i].startsWith('vmess://')) {
+                const v = parseVmess(cfgs[i]);
+                if (!v) continue;
+                k = `vm${v.s}${v.p}${v.u}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('vm', v.s, i),
+                    type: 'vmess',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    uuid: sanitize(v.u),
+                    alterId: v.a,
+                    cipher: sanitize(v.c),
+                    udp: true,
+                    'skip-cert-verify': true
+                };
+                if (v.n === 'ws') {
+                    p.network = 'ws';
+                    p['ws-opts'] = { path: sanitize(v.path), headers: { Host: sanitize(v.host) } };
+                }
+                if (v.t) {
+                    p.tls = true;
+                    p.servername = sanitize(v.sni);
+                }
+            } 
+
+            else if (cfgs[i].startsWith('vless://')) {
+                const v = parseVless(cfgs[i]);
+                if (!v) continue;
+                k = `vl${v.s}${v.p}${v.u}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('vl', v.s, i),
+                    type: 'vless',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    uuid: sanitize(v.u),
+                    udp: true,
+                    'skip-cert-verify': true
+                };
+                if (v.n === 'ws') {
+                    p.network = 'ws';
+                    p['ws-opts'] = { path: sanitize(v.path), headers: { Host: sanitize(v.host) } };
+                } else if (v.n === 'grpc') {
+                    p.network = 'grpc';
+                    p['grpc-opts'] = { 'grpc-service-name': sanitize(v.path) };
+                }
+                if (v.sec === 'tls' || v.sec === 'reality') {
+                    p.tls = true;
+                    p.servername = sanitize(v.sni);
+                    if (v.flow && v.flow.includes('vision')) p.flow = 'xtls-rprx-vision';
+                    if (v.sec === 'reality') {
+                        p['client-fingerprint'] = v.fp;
+                        p['reality-opts'] = { 'public-key': v.pbk, 'short-id': v.sid };
+                    }
+                }
+            }
+
+            else if (cfgs[i].startsWith('trojan://')) {
+                const v = parseTrojan(cfgs[i]);
+                if (!v) continue;
+                k = `tr${v.s}${v.p}${v.pw}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('tr', v.s, i),
+                    type: 'trojan',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    password: sanitize(v.pw),
+                    udp: true,
+                    sni: sanitize(v.sni),
+                    'skip-cert-verify': true
+                };
+            }
+
+            else if (cfgs[i].startsWith('ss://')) {
+                const v = parseSs(cfgs[i]);
+                if (!v) continue;
+                k = `ss${v.s}${v.p}${v.m}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('ss', v.s, i),
+                    type: 'ss',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    cipher: sanitize(v.m),
+                    password: sanitize(v.pw),
+                    udp: true
+                };
+            }
+
+            else if (cfgs[i].startsWith('hysteria2://') || cfgs[i].startsWith('hy2://')) {
+                const v = parseHysteria2(cfgs[i]);
+                if (!v) continue;
+                k = `hy2${v.s}${v.p}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('hy2', v.s, i),
+                    type: 'hysteria2',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    password: sanitize(v.pw),
+                    sni: sanitize(v.sni),
+                    'skip-cert-verify': true
+                };
+                if (v.obfs) {
+                    p.obfs = v.obfs;
+                    p['obfs-password'] = v.obfsPw;
+                }
+            }
+
+             else if (cfgs[i].startsWith('tuic://')) {
+                const v = parseTuic(cfgs[i]);
+                if (!v) continue;
+                k = `tuic${v.s}${v.p}`;
+                if (seen.has(k)) continue;
+                p = {
+                    name: uid('tuic', v.s, i),
+                    type: 'tuic',
+                    server: sanitize(v.s),
+                    port: v.p,
+                    uuid: sanitize(v.u),
+                    password: sanitize(v.pw),
+                    'server-name': sanitize(v.sni),
+                    'congestion-controller': v.cc,
+                    'udp-relay-mode': 'native',
+                    'skip-cert-verify': true,
+                    'disable-sni': false,
+                    alpn: [v.alpn]
+                };
+            }
+
+            if (p && k) {
+                seen.add(k);
+                prx.push(p);
+            }
+        } catch {}
+    }
+
+    if (!prx.length) return null;
+    const names = prx.map(x => x.name);
+
+    let y = `mixed-port: 7890
+http-port: 7891
+socks-port: 7892
+ipv6: true
+allow-lan: false
+mode: rule
+log-level: warning
+disable-keep-alive: false
+keep-alive-idle: 10
+keep-alive-interval: 15
+unified-delay: true
+geo-auto-update: true
+external-controller: 127.0.0.1:9090
+external-ui-url: https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip
+external-ui: ui
+external-controller-cors:
+  allow-origins:
+    - '*'
+  allow-private-network: true
+profile:
+  store-selected: true
+  store-fake-ip: true
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  ipv6: tru
+  respect-rules: true
+  use-system-hosts: false
+  nameserver:
+    - https://8.8.8.8/dns-query#⚪ REvil
+    - https://208.67.222.222/dns-query
+    - https://dns.alidns.com/dns-query
+    - 223.5.5.5
+    - 8.8.8.8  
+    - 1.1.1.1 
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - 8.8.8.8#DIRECT
+  nameserver-policy:
+    raw.githubusercontent.com: 8.8.8.8#DIRECT
+    time.apple.com: 8.8.8.8#DIRECT
+    www.gstatic.com: system
+    rule-set:ir:
+      - 8.8.8.8#DIRECT
+  fallback:
+    - tls://1.1.1.1
+    - tcp://8.8.8.8
+    - tls://dns.quad9.net
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - geosite:private
+tun:
+  enable: true
+  stack: system
+  auto-route: true
+  strict-route: true
+  auto-detect-interface: true
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  mtu: 9000
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 8080
+        - 8880
+        - 2052
+        - 2082
+        - 2086
+        - 2095
+    TLS:
+      ports:
+        - 443
+        - 8443
+        - 2053
+        - 2083
+        - 2087
+        - 2096
+proxies:
+`;
+
+    for (const x of prx) {
+        y += `  - name: "${x.name}"\n`;
+        y += `    type: ${x.type}\n`;
+        y += `    server: ${x.server}\n`;
+        y += `    port: ${x.port}\n`;
+        y += `    udp: true\n`;
+        y += `    skip-cert-verify: true\n`;
+
+        for (const [key, value] of Object.entries(x)) {
+            if (['name', 'type', 'server', 'port', 'udp', 'skip-cert-verify'].includes(key)) continue;
+            if (typeof value === 'object' && !Array.isArray(value)) {
+                y += `    ${key}:\n`;
+                for (const [k, v] of Object.entries(value)) y += `      ${k}: ${v}\n`;
+            } else if (Array.isArray(value)) {
+                 y += `    ${key}: [${value.join(', ')}]\n`;
+            } else {
+                y += `    ${key}: ${value}\n`;
+            }
+        }
+    }
+
+    y += `
+proxy-groups:
+  - name: ⚪ REvil
+    type: select
+    proxies:
+      - 🟢 AUTO
+      - DIRECT
+`;
+    for (const name of names) y += `      - "${name}"\n`;
+
+    y += `
+  - name: 🟢 AUTO
+    type: url-test
+    url: https://www.gstatic.com/generate_204
+    interval: 180
+    tolerance: 50
+    proxies:
+`;
+    for (const name of names) y += `      - "${name}"\n`;
+
+    y += `
+rule-providers:
+  phishing:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/phishing.txt"
+    path: ./ruleset/phishing.txt
+    interval: 86400
+  malware:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/malware.txt"
+    path: ./ruleset/malware.txt
+    interval: 86400
+  cryptominers:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/cryptominers.txt"
+    path: ./ruleset/cryptominers.txt
+    interval: 86400
+  category-ads-all:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/category-ads-all.txt"
+    path: ./ruleset/category-ads-all.txt
+    interval: 86400
+  private:
+    type: http
+    format: yaml
+    behavior: domain
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.yaml"
+    path: ./ruleset/private.yaml
+    interval: 86400
+  private-cidr:
+    type: http
+    format: yaml
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/private.yaml"
+    path: ./ruleset/private-cidr.yaml
+    interval: 86400
+  ir:
+    type: http
+    format: text
+    behavior: domain
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/ir.txt"
+    path: ./ruleset/ir.txt
+    interval: 86400
+  ir-cidr:
+    type: http
+    format: text
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/Chocolate4U/Iran-clash-rules/release/ircidr.txt"
+    path: ./ruleset/ir-cidr.txt
+    interval: 86400
+rules:
+  - RULE-SET,phishing,REJECT
+  - RULE-SET,malware,REJECT
+  - RULE-SET,cryptominers,REJECT
+  - RULE-SET,category-ads-all,REJECT
+  - RULE-SET,private,DIRECT
+  - RULE-SET,private-cidr,DIRECT,no-resolve
+  - RULE-SET,ir,DIRECT
+  - RULE-SET,ir-cidr,DIRECT,no-resolve
+  - MATCH,⚪ REvil
+ntp:
+  enable: true
+  server: time.apple.com
+  port: 123
+  interval: 30
+`;
+    return y;
 };
 
 export default {
@@ -755,7 +918,7 @@ export default {
                     return text(content, 'text/plain', h, `V2V-Xray-${id}.txt`);
                 }
                 if (fmt === 'xray-clash') {
-                    const content = genClashForXray(configs);
+                    const content = genClashSub(configs);
                     if (!content) return json({ error: 'No valid configs' }, 500, h);
                     return text(content, 'text/yaml', h, `V2V-Xray-Clash-${id}.yaml`);
                 }
@@ -765,10 +928,11 @@ export default {
                     return text(content, 'application/json', h, `V2V-Singbox-${id}.json`);
                 }
                 if (fmt === 'singbox-clash') {
-                    const content = genClashForSingbox(configs);
+                    const content = genClashSub(configs);
                     if (!content) return json({ error: 'No valid configs' }, 500, h);
                     return text(content, 'text/yaml', h, `V2V-Singbox-Clash-${id}.yaml`);
                 }
+
             }
             return new Response('Not Found', { status: 404, headers: h });
         } catch (e) {
