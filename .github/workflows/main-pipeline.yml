@@ -1,17 +1,17 @@
 name: 'V2V Complete Deploy'
 
 on:
-#  schedule:
-#    - cron: '0 */3 * * *'
-#  push:
-#    branches:
-#      - main
-#    paths:
-#      - 'scraper.py'
-#      - 'worker.js'
-#      - 'index.html'
-#      - 'index.js'
-    workflow_dispatch:
+  schedule:
+    - cron: '0 */3 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scraper.py'
+      - 'worker.js'
+      - 'index.html'
+      - 'index.js'
+  workflow_dispatch:
 
 permissions:
   contents: write
