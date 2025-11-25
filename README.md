@@ -1,27 +1,53 @@
-# V2V - پروژه جمع‌آوری و مدیریت کانفیگ‌های Proxy
+<p align="center">
+ <img src="https://latex.codecogs.com/svg.image?\huge&space;{\color{Teal}\mathrm{\mathbf{V}}}{\color{white}\textbf{2}}{\color{red}\textbf{V}}" width=180px" </p><br><br/>
+
+
+
+> [!CAUTION]
+> 
+> پروژه جمع‌آوری و مدیریت  انواع پروکسی کانفیگ‌های v2ray، مانند:  
+> 
+> - Vless  
+> - Vmess  
+> - Trojan  
+> - Shadowsocks   
+> - Hysteria  
+> - Tuic  
+> - Reality  
+> - And more protocol's
+> 
+> <br/> 
 
 ## 📋 فهرست
-
 - [معرفی](#معرفی)
-- [ویژگی‌ها](#ویژگیها)
-- [نصب و راه‌اندازی](#نصب-و-راهاندازی)
-- [ساختار فایل‌ها](#ساختار-فایلها)
+- [ویژگی‌ها](#ویژگی-ها)
+- [نصب و راه‌اندازی](#نصب-و-راه-اندازی)
+- [ساختار فایل‌ها](#ساختار-فایل-ها)
 - [تنظیمات](#تنظیمات)
-- [استفاده](#استفاده)
+- [نحوه استفاده](#نحوه-استفاده)
 
+<br/>
+ 
 ## معرفی
+ ‏V2V یک سیستم جامع برای جمع‌آوری، تست و توزیع پروکسی کانفیگ‌های v2ray است که از پروتکل‌های مختلف پشتیبانی می‌کند.
 
-V2V یک سیستم جامع برای جمع‌آوری، تست و توزیع کانفیگ‌های Proxy است که از پروتکل‌های مختلف شامل VMess، VLESS، Trojan، Shadowsocks، Hysteria2 و TUIC پشتیبانی می‌کند.
+<br><br/>
 
-## ویژگی‌ها
+## ویژگی ها
+✅ **تست پینگ واقعی**: تست اتصال با 3 بار تلاش و میانگین‌گیری  
+✅ **ساب‌لینک‌های استاندارد**: تولید فایل‌های Clash و Singbox با امضای V2V  
+✅ **بدون خطا**: تمام فایل‌ها بدون هیچ خطای EOF، Unmarshal یا Duplicate   
+✅ **انتخاب همه**: دکمه انتخاب همه برای هر پروتکل  
+✅ **دیپلوی چندگانه**: استقرار پروژه بر بستر چند سرویس‌دهنده مختلف مانند:  
+- Arvan Cloud
+- GitHub Pages
+- Vercel
+- Cloudflare Workers  
+برای جلوگیری از قطع دسترسی ناخواسته هنگام محدود شدن هرکدام از آن‌ها.
 
-✅ **تست پینگ واقعی**: تست اتصال با 3 بار تلاش و میانگین‌گیری
-✅ **ساب‌لینک‌های استاندارد**: تولید فایل‌های Clash و Singbox با امضای V2V
-✅ **بدون خطا**: تمام فایل‌ها بدون هیچ خطای EOF، Unmarshal یا Duplicate
-✅ **انتخاب همه**: دکمه انتخاب همه برای هر پروتکل
-✅ **دیپلوی چندگانه**: Arvan Cloud، GitHub Pages، Vercel، Cloudflare Workers
+<br/> 
 
-## نصب و راه‌اندازی
+## نصب و راه اندازی
 
 ### 1. کلون کردن مخزن
 
@@ -30,7 +56,11 @@ git clone https://github.com/smbcryp/V2V.git
 cd V2V
 ```
 
-### 2. نصب Dependencies
+<br/> 
+
+### 2. نصب پیش‌نیاز‌ها
+
+**install dependencies**
 
 ```bash
 pip install requests PyGithub PyYAML
@@ -39,19 +69,33 @@ npm install -g wrangler vercel
 
 ### 3. تنظیم Secrets در GitHub
 
-در صفحه Settings > Secrets and variables > Actions، موارد زیر را اضافه کنید:
+**در مخزن گیت‌هاب خود در مسیر زیر:**  
 
-```
+Settings > Secrets and variables > Actions‌ 
+
+**موارد ذکر شده را اضافه کنید:**  
+
+```yaml
 GH_PAT=your_github_personal_access_token
+
 ARVAN_ACCESS_KEY_ID=your_arvan_access_key
+
 ARVAN_SECRET_ACCESS_KEY=your_arvan_secret_key
+
 ARVAN_BUCKET_NAME=your_bucket_name
+
 VERCEL_TOKEN=your_vercel_token
+
 VERCEL_ORG_ID=your_vercel_org_id
+
 VERCEL_PROJECT_ID=your_vercel_project_id
+
 CLOUDFLARE_API_TOKEN=your_cloudflare_api_token
+
 CLOUDFLARE_ACCOUNT_ID=your_cloudflare_account_id
 ```
+
+<br/> 
 
 ### 4. ساخت KV Namespace در Cloudflare
 
@@ -61,43 +105,51 @@ wrangler kv:namespace create "v2v_kv"
 
 سپس ID دریافتی را در `wrangler.toml` جایگزین کنید.
 
-### 5. دیپلوی Workers
+<br/> 
+
+### 5. دیپلوی Workers 
 
 ```bash
 wrangler deploy
 ```
 
-## ساختار فایل‌ها
+<br/>
 
-```
+## ساختار فایل ها
+
+```yaml
 V2V/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # GitHub Actions workflow
-├── index.html                  # صفحه اصلی
-├── index.js                    # منطق Frontend
-├── worker.js                   # Cloudflare Worker
-├── wrangler.toml              # تنظیمات Worker
-├── vercel.json                # تنظیمات Vercel
-├── manifest.json              # PWA Manifest
-├── logo.png                   # لوگوی پروژه
-├── scraper.py                 # اسکریپت جمع‌آوری کانفیگ
-└── README.md                  # این فایل
+│      └── deploy.yml  # Github workflow
+├── index.html         # صفحه اصلی
+├── index.js           # منطق Frontend
+├── worker.js          # وورکر کلادفلر 
+├── wrangler.toml      # تنظیمات Worker
+├── vercel.json        # تنظیمات Vercel
+├── manifest.json      # PWA Manifest
+├── logo.png           # لوگوی پروژه
+├── scraper.py         # اسکریپت جمع‌آوری کانفیگ
+└── README.md          # این فایل
 ```
+
+<br/> 
 
 ## تنظیمات
 
-### تنظیم تعداد Worker URLs در `index.js`:
+### تنظیم تعداد Worker URLs در فایل `index.js`:
 
 ```javascript
 const WORKER_URLS = [
     'https://v2v-proxy.USERNAME.workers.dev',
     'https://v2v.USERNAME.workers.dev',
-    // Worker URLs خود را اضافه کنید
+    // آدرس URLs وورکر خود را قرار دهید.
 ];
 ```
 
-### تنظیم Origins مجاز در `worker.js`:
+<br/>
+
+### تنظیم Origins مجاز در فایل `worker.js`:
 
 ```javascript
 const ALLOWED_ORIGINS = [
@@ -107,30 +159,50 @@ const ALLOWED_ORIGINS = [
 ];
 ```
 
-## استفاده
+<br/>
+
+## نحوه استفاده
 
 ### وب‌سایت
 
-1. به یکی از URLهای زیر بروید:
-   - GitHub Pages: `https://smbcryp.github.io/V2V/`
-   - Vercel: `https://your-app.vercel.app/`
-   - Arvan: `https://your-bucket.s3-website.ir-thr-at1.arvanstorage.ir/`
+ ‏1. **ورود به وب‌سایت:**  
+یکی از آدرس‌های زیر را به دلخواه در مرورگر خود باز کنید:  
 
-2. **تست پینگ**: روی دکمه "تست پینگ همه کانفیگ‌ها" کلیک کنید
+- GitHub Pages:
+[smbcryp.github.io/V2V][1]
+- Vercel:  
+[Your-app.vercel.app][2]
+- Arvan:  
+[your-bucket.s3-website.ir-thr-at1.arvanstorage.ir][3]
 
-3. **انتخاب کانفیگ**: 
-   - استفاده از دکمه ☑️ برای انتخاب همه یک پروتکل
-   - یا انتخاب دستی کانفیگ‌های دلخواه
+<br/>
 
-4. **تولید ساب‌لینک**:
-   - **Clash**: کلیک روی "انتخابی" یا "خودکار"
-   - **Singbox**: کلیک روی "انتخابی" یا "خودکار"
-   - **QR Code**: کلیک روی دکمه "QR"
+ ‏2. ‏**تست پینگ**:    
+روی دکمه `تست پینگ همه کانفیگ‌ها` کلیک کنید.
+
+<br/>
+
+ ‏3. ‏**انتخاب کانفیگ**:    
+با استفاده از دکمه ☑️ برای انتخاب:  
+- همه  
+- یک پروتکل  
+- و یا انتخاب دستی کانفیگ‌های دلخواه  
+استفاده کنید.
+
+<br/>
+
+ ‏4. ‏**تولید ساب‌لینک:**  
+- ‏**Clash**: کلیک روی "انتخابی" یا "خودکار"  
+- ‏**Singbox**: کلیک روی "انتخابی" یا "خودکار"  
+- ‏**QR Code**: کلیک روی دکمه "QR"  
+
+<br/>
 
 ### API Endpoints
 
 #### POST `/ping`
-تست اتصال به هاست و پورت:
+
+تست اتصال به هاست و پورت:  
 
 ```bash
 curl -X POST https://your-worker.workers.dev/ping \
@@ -139,7 +211,8 @@ curl -X POST https://your-worker.workers.dev/ping \
 ```
 
 #### POST `/create-sub`
-ساخت ساب‌لینک:
+
+**ساخت ساب‌لینک:**  
 
 ```bash
 curl -X POST https://your-worker.workers.dev/create-sub \
@@ -150,7 +223,10 @@ curl -X POST https://your-worker.workers.dev/create-sub \
   }'
 ```
 
-پاسخ:
+<br/>
+
+**پاسخ دریافتی:**  
+
 ```json
 {
   "success": true,
@@ -159,8 +235,11 @@ curl -X POST https://your-worker.workers.dev/create-sub \
 }
 ```
 
+<br/>
+
 #### GET `/sub/{format}/{id}`
-دریافت فایل ساب‌لینک:
+
+**دریافت فایل ساب‌لینک:**  
 
 ```bash
 # Clash
@@ -170,6 +249,8 @@ curl https://your-worker.workers.dev/sub/clash/abc12345
 curl https://your-worker.workers.dev/sub/singbox/abc12345
 ```
 
+<br/> 
+
 ## تضمین کیفیت
 
 ### ✅ تست پینگ واقعی و دقیق
@@ -177,11 +258,17 @@ curl https://your-worker.workers.dev/sub/singbox/abc12345
 **ویژگی‌ها:**
 - 3 بار تلاش برای هر کانفیگ
 - میانگین‌گیری از نتایج موفق
-- Timeout واقعی 3 ثانیه
+- ‏ Timeout واقعی 3 ثانیه
 - تست موازی روی 4 Worker
-- نمایش رنگی: سبز (<200ms)، زرد (200-500ms)، قرمز (>500ms)
+- نمایش رنگی:
+  - سبز (<200ms)
+  - زرد (200-500ms)
+  - قرمز (>500ms)
 
-**کد تست پینگ در Worker:**
+<br/>
+
+**کد تست پینگ در Worker:**  
+
 ```javascript
 async function testConnection(host, port) {
     const tests = [];
@@ -207,14 +294,17 @@ async function testConnection(host, port) {
 }
 ```
 
-**نتیجه:** 
+**نتیجه:**  
 - ✅ هیچ پینگ غیر‌واقعی نمایش داده نمی‌شود
 - ✅ تمام کانفیگ‌ها تست می‌شوند (بدون محدودیت)
 - ✅ پردازش موازی روی 4 Worker برای سرعت بیشتر
 
+<br/>
+
 ### ✅ ساب‌لینک‌های بدون خطا
 
-**ویژگی‌های Clash:**
+#### ویژگی‌ کانفیگ‌های Clash:
+
 ```yaml
 # Generated by V2V
 # https://github.com/smbcryp/V2V
@@ -256,7 +346,10 @@ rules:
   - MATCH,🎯 V2V Select
 ```
 
-**ویژگی‌های Singbox:**
+<br/> 
+
+#### ویژگی‌ کانفیگ‌های Singbox:  
+
 ```json
 {
   "log": {
@@ -366,14 +459,20 @@ rules:
 }
 ```
 
-**نتیجه:**
+<br/>
+
+**نتیجه:**  
 - ✅ **هیچ خطای EOF**: پارس کامل و صحیح تمام فیلدها
 - ✅ **هیچ خطای Unmarshal**: JSON/YAML معتبر و استاندارد
 - ✅ **هیچ خطای Duplicate**: حذف کانفیگ‌های تکراری با uniqueKey
 - ✅ **هیچ خطای Password**: اعتبارسنجی دقیق تمام فیلدها
 - ✅ **محتوای معتبر**: تست تمام پروتکل‌ها قبل از اضافه شدن
 
+<br/> 
+
 ### ✅ پشتیبانی کامل از تمام پروتکل‌ها
+
+<br/> 
 
 | پروتکل | Xray | Singbox | Clash | تست شده |
 |--------|------|---------|-------|---------|
@@ -384,14 +483,20 @@ rules:
 | Hysteria2 | ✅ | ✅ | ❌ | ✅ |
 | TUIC | ✅ | ✅ | ❌ | ✅ |
 
-**توضیحات:**
+<br/> 
+
+**توضیحات:**  
 - تمام پروتکل‌ها در هر دو هسته Xray و Singbox پشتیبانی می‌شوند
-- Clash فقط از 4 پروتکل اول پشتیبانی می‌کند (محدودیت خود Clash)
-- تست پینگ روی تمام پروتکل‌ها به صورت یکسان کار می‌کند
+- کلش فقط از 4 پروتکل اول پشتیبانی می‌کند
+  - (محدودیت خود Clash)
+- تست پینگ روی تمام پروتکل‌ها به صورت یکسان اجرا می‌شود.
+
+<br/> 
 
 ### ✅ حذف Duplicate و اعتبارسنجی
 
-**الگوریتم حذف تکراری:**
+**الگوریتم حذف تکراری:**  
+
 ```javascript
 const seen = new Set();
 for (const config of configs) {
@@ -402,7 +507,10 @@ for (const config of configs) {
 }
 ```
 
-**اعتبارسنجی کامل:**
+<br/> 
+
+**اعتبارسنجی کامل:**  
+
 ```javascript
 function parseVmessConfig(config) {
     // بررسی format
@@ -427,14 +535,19 @@ function parseVmessConfig(config) {
 }
 ```
 
+<br/>
+
 **نتیجه:**
 - ✅ هیچ کانفیگ تکراری در لیست نهایی نیست
 - ✅ تمام کانفیگ‌های نامعتبر حذف می‌شوند
 - ✅ فقط کانفیگ‌های کامل و صحیح نمایش داده می‌شوند
+ 
+<br/>
 
-### ✅ UUID کوتاه و امن
+###  ‏✅ UUID کوتاه و امن
 
-**تولید UUID:**
+**تولید [UUID][4]:**  
+
 ```javascript
 function generateShortId() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -446,23 +559,27 @@ function generateShortId() {
 }
 ```
 
-**URL نهایی:**
-```
+**آدرس URL نهایی:**
+
+```yaml
 https://your-worker.workers.dev/sub/clash/a7k3m9x2
 https://your-worker.workers.dev/sub/singbox/b5n8p1q4
 ```
 
-**نتیجه:**
-- ✅ URL کوتاه و قابل اشتراک‌گذاری
+**نتیجه:**  
+- ‏✅ آدرس URL کوتاه و قابل اشتراک‌گذاری
 - ✅ هیچ اطلاعات حساس در URL نیست
 - ✅ ذخیره امن در Cloudflare KV با TTL یک ساله
 
-### ✅ امضای V2V در کلاینت‌ها
+<br/>
 
-**نمایش در کلاینت‌ها:**
+### ✅ امضای [V2V][5] در کلاینت‌ها
 
-**Clash Meta / Clash Verge:**
-```
+**نمایش در کلاینت‌ها:**  
+
+**Clash Meta / Clash Verge:**  
+
+```yaml
 🚀 V2V Auto          ← Group انتخاب خودکار
 🎯 V2V Select        ← Group انتخاب دستی
 [V2V] VMess-Server1  ← نام کانفیگ با prefix [V2V]
@@ -470,8 +587,9 @@ https://your-worker.workers.dev/sub/singbox/b5n8p1q4
 [V2V] Trojan-Server3
 ```
 
-**Singbox / V2rayNG:**
-```
+**Singbox / V2rayNG:**  
+
+```yaml
 🚀 V2V Auto
 🎯 V2V Select
 [V2V] VMess-Server1
@@ -484,9 +602,12 @@ https://your-worker.workers.dev/sub/singbox/b5n8p1q4
 - ✅ گروه‌ها با ایموجی مشخص هستند
 - ✅ کاربر به راحتی می‌تواند منبع را تشخیص دهد
 
+<br/>
+
 ### ✅ پردازش موازی روی 4 Worker
 
-**الگوریتم توزیع:**
+**الگوریتم توزیع:**  
+
 ```javascript
 // تقسیم کانفیگ‌ها بین 4 Worker
 for (let i = 0; i < allConfigs.length; i += BATCH_SIZE * 4) {
@@ -506,21 +627,25 @@ for (let i = 0; i < allConfigs.length; i += BATCH_SIZE * 4) {
 }
 ```
 
-**سرعت:**
+**سرعت:**  
 - تک Worker: 1000 کانفیگ = ~15 دقیقه
-- 4 Worker موازی: 1000 کانفیگ = ~4 دقیقه
+- چهار Worker موازی: 1000 کانفیگ = ~4 دقیقه
 
-**نتیجه:**
+**نتیجه:**  
 - ✅ سرعت 4 برابر در تست پینگ
 - ✅ بدون تداخل و Race Condition
-- ✅ Fallback خودکار اگر Worker از کار افتاد
+- ✅ فال‌بک/Fallback خودکار اگر Worker از کار افتاد
+
+<br/>
 
 ## عیب‌یابی
 
 ### خطای "Worker غیرفعال"
-**علت:** Workers در دسترس نیستند
 
-**راه حل:**
+**علت:** ‏Workers در دسترس نیستند.
+
+**راه حل:**  
+
 ```bash
 # تست Workers
 curl https://your-worker.workers.dev/
@@ -529,8 +654,11 @@ curl https://your-worker.workers.dev/
 wrangler deploy
 ```
 
+<br/> 
+
 ### خطای "KV Namespace not found"
-**علت:** KV Namespace ساخته نشده یا ID اشتباه است
+
+**علت:** KV Namespace ساخته نشده یا ID اشتباه است.
 
 **راه حل:**
 ```bash
@@ -540,46 +668,65 @@ wrangler kv:namespace create "v2v_kv"
 # آپدیت wrangler.toml با ID جدید
 ```
 
-### خطای "Invalid config format"
-**علت:** فرمت کانفیگ نامعتبر است
+<br/>
 
-**راه حل:**
-کانفیگ باید با یکی از این prefix ها شروع شود:
+### خطای "Invalid config format"
+
+**علت:** فرمت کانفیگ نامعتبر است.
+
+**راه حل:** کانفیگ باید با یکی از این prefixها شروع شود:
+
 - `vmess://`
 - `vless://`
 - `trojan://`
 - `ss://`
 
-### خطای Timeout در تست پینگ
-**علت:** سرور در دسترس نیست یا فیلتر است
+<br/>
 
-**نتیجه:** کانفیگ با ✗ قرمز نمایش داده می‌شود (عادی است)
+### خطای Timeout در تست پینگ
+
+**علت:** سرور در دسترس نیست یا فیلتر است.
+
+**نتیجه:** کانفیگ با ✗ قرمز نمایش داده می‌شود، (عادی).
+
+<br/>
 
 ## مشارکت
-
-1. Fork کنید
+1. Fork کنید.  
 2. Feature branch بسازید (`git checkout -b feature/AmazingFeature`)
 3. Commit کنید (`git commit -m 'Add AmazingFeature'`)
 4. Push کنید (`git push origin feature/AmazingFeature`)
-5. Pull Request باز کنید
+5. Pull Request باز کنید.
+
+<br/>
 
 ## لایسنس
-
 این پروژه تحت لایسنس MIT منتشر شده است.
 
 ## تماس و پشتیبانی
 
-- GitHub: [@smbcryp](https://github.com/smbcryp)
-- Issues: [گزارش مشکل](https://github.com/smbcryp/V2V/issues)
+- GitHub: [@smbcryp][5]
+- Issues: [گزارش مشکل][6]
 
-## تشکر ویژه
-
+## تشکر ویژه  
 سپاس از تمامی کسانی که به صورت مستقیم یا غیرمستقیم در توسعه این پروژه نقش داشتند.
 
----
+<hr/><br/>
 
-**⚠️ هشدار قانونی**: این ابزار صرفاً برای اهداف آموزشی و تحقیقاتی ارائه شده است. استفاده از آن مسئولیت شخصی کاربر است.
+### ⚠️ سلب مسئولیت
+این ابزار صرفاً برای اهداف آموزشی و تحقیقاتی توسعه داده شده است. هرگونه استفادهٔ نادرست یا مغایر با قوانین، به‌طور کامل بر عهدهٔ کاربر خواهد بود.
 
----
+<hr/><br/>
 
-Made with ❤️ by V2V Team
+<div markdown='1' align='center'>
+
+Made with 🤍 by **V2V Team**
+
+<div/>
+
+[1]: https://smbcryp.github.io/V2V
+[2]: https://your-app.vercel.app
+[3]: https://your-bucket.s3-website.ir-thr-at1.arvanstorage.ir
+[4]: https://www.uuidgenerator.net/
+[5]: https://github.com/smbcryp
+[6]: https://github.com/smbcryp/V2V/issues
