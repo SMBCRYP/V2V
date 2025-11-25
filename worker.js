@@ -353,7 +353,7 @@ const genClashForXray = (cfgs) => {
     }
     y += '\nproxy-groups:\n';
     y += '  - name: "V2V-AUTO"\n';
-    y += '    type: url-est\n';
+    y += '    type: url-test\n';
     y += '    proxies:\n';
     for (const name of n) y += `      - "${name}"\n`;
     y += '    url: http://www.gstatic.com/generate_204\n';
