@@ -71,11 +71,11 @@ const parseVless = (cfg) => {
         return {
             s: u.hostname,
             p: parseInt(u.port),
-            u: u.username,
+            u: decodeURIComponent(u.username),
             n: q.get('type') || 'tcp',
             t: q.get('security') === 'tls',
             sni: q.get('sni') || u.hostname,
-            path: q.get('path') || '/',
+            path: decodeURIComponent(q.get('path') || '/'),
             host: q.get('host') || u.hostname,
             flow: q.get('flow') || ''
         };
@@ -105,20 +105,30 @@ const parseSs = (cfg) => {
     try {
         if (!cfg?.startsWith('ss://')) return null;
         const u = new URL(cfg);
-        if (!u.hostname || !u.port || !u.username) return null;
-        const d = b64d(u.username);
-        if (!d || !d.includes(':')) return null;
-        const i = d.indexOf(':');
+        if (!u.hostname || !u.port) return null;
+        let method, password;
+        if (u.password) {
+            method = u.username;
+            password = u.password;
+        } else {
+            const d = b64d(u.username);
+            if (!d || !d.includes(':')) return null;
+            const i = d.indexOf(':');
+            method = d.slice(0, i);
+            password = d.slice(i + 1);
+        }
+
         return {
             s: u.hostname,
             p: parseInt(u.port),
-            m: d.slice(0, i),
-            pw: d.slice(i + 1)
+            m: decodeURIComponent(method), // حذف کاراکترهای درصد دار احتمالی
+            pw: decodeURIComponent(password)
         };
     } catch {
         return null;
     }
 };
+
 
 const parseHysteria2 = (cfg) => {
     try {
@@ -126,10 +136,13 @@ const parseHysteria2 = (cfg) => {
         const u = new URL(cfg);
         if (!u.hostname || !u.port) return null;
         const q = new URLSearchParams(u.search);
+        
+        const rawPassword = u.username || q.get('password') || q.get('auth') || '';
+
         return {
             s: u.hostname,
             p: parseInt(u.port),
-            pw: u.username || q.get('password') || q.get('auth') || '',
+            pw: decodeURIComponent(rawPassword),
             sni: q.get('sni') || u.hostname,
             obfs: q.get('obfs') || null,
             obfsPw: q.get('obfs-password') || ''
@@ -139,24 +152,29 @@ const parseHysteria2 = (cfg) => {
     }
 };
 
+
 const parseTuic = (cfg) => {
     try {
         if (!cfg?.startsWith('tuic://')) return null;
         const u = new URL(cfg);
         if (!u.hostname || !u.port) return null;
         const q = new URLSearchParams(u.search);
+        
         let uuid = u.username;
-        let password = '';
-        if (uuid && uuid.includes(':')) {
+        let password = u.password;
+
+        if (!password && uuid && uuid.includes(':')) {
             [uuid, password] = uuid.split(':', 2);
         }
+        
         if (!uuid) uuid = q.get('uuid') || q.get('user') || '';
         if (!password) password = q.get('password') || q.get('pass') || '';
+
         return {
             s: u.hostname,
             p: parseInt(u.port),
-            u: uuid,
-            pw: password,
+            u: decodeURIComponent(uuid),
+            pw: decodeURIComponent(password),
             sni: q.get('sni') || u.hostname,
             cc: q.get('congestion_control') || 'bbr',
             alpn: q.get('alpn') || 'h3'
@@ -165,6 +183,7 @@ const parseTuic = (cfg) => {
         return null;
     }
 };
+
 
 const genXraySubscription = (cfgs) => {
     const valid = [];
