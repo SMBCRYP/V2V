@@ -373,10 +373,12 @@ const genClashForXray = (cfgs) => {
 const genSingboxSubscription = (cfgs) => {
     const out = [];
     const seen = new Set();
+
     for (let i = 0; i < cfgs.length; i++) {
         try {
             let o = null;
             let k = null;
+            
             if (cfgs[i].startsWith('vmess://')) {
                 const v = parseVmess(cfgs[i]);
                 if (!v) continue;
@@ -507,60 +509,164 @@ const genSingboxSubscription = (cfgs) => {
                     }
                 };
             }
+
             if (o && k) {
                 seen.add(k);
                 out.push(o);
             }
         } catch {}
     }
+
     if (!out.length) return null;
+    const tags = out.map(x => x.tag);
+
     return JSON.stringify({
-        log: { level: 'info', timestamp: true },
-        dns: {
-            servers: [
-                { tag: 'google', address: '8.8.8.8', strategy: 'prefer_ipv4' },
-                { tag: 'local', address: 'local', detour: 'direct' }
-            ],
-            rules: [{ geosite: 'ir', server: 'local' }],
-            final: 'google'
+        "log": {
+            "level": "error",
+            "timestamp": true
         },
-        inbounds: [
-            { tag: 'mixed-in', type: 'mixed', listen: '127.0.0.1', listen_port: 7890 }
-        ],
-        outbounds: [
+        "dns": {
+            "servers": [
+                {
+                    "type": "tcp",
+                    "tag": "direct-dns",
+                    "server": "8.8.8.8"
+                },
+                {
+                    "type": "tcp",
+                    "tag": "proxy-dns",
+                    "detour": "select",
+                    "server": "8.8.8.8"
+                },
+                {
+                    "type": "local",
+                    "tag": "local-dns",
+                    "detour": "direct"
+                }
+            ],
+            "rules": [
+                { "clash_mode": "Global", "server": "proxy-dns" },
+                {
+                    "source_ip_cidr": [
+                        "172.19.0.0/30",
+                        "fdfe:dcba:9876::1/126"
+                    ],
+                    "server": "direct-dns"
+                },
+                { "clash_mode": "Direct", "server": "direct-dns" },
+                {
+                    "rule_set": ["geosite-ir", "geoip-ir"],
+                    "server": "direct-dns"
+                },
+                { "domain_suffix": ".ir", "server": "direct-dns" }
+            ],
+            "final": "local-dns",
+            "strategy": "prefer_ipv4",
+            "independent_cache": true
+        },
+        "inbounds": [
             {
-                tag: 'V2V-AUTO',
-                type: 'urltest',
-                outbounds: out.map(x => x.tag),
-                url: 'http://www.gstatic.com/generate_204',
-                interval: '5m',
-                tolerance: 50
+                "type": "tun",
+                "tag": "tun-in",
+                "mtu": 9000,
+                "address": [
+                    "172.19.0.1/30",
+                    "fdfe:dcba:9876::1/126"
+                ],
+                "auto_route": true,
+                "stack": "system",
+                "platform": {
+                    "http_proxy": {
+                        "enabled": true,
+                        "server": "127.0.0.1",
+                        "server_port": 2080
+                    }
+                }
             },
             {
-                tag: 'V2V-SELECT',
-                type: 'selector',
-                outbounds: ['V2V-AUTO', ...out.map(x => x.tag)],
-                default: 'V2V-AUTO'
+                "type": "mixed",
+                "listen": "127.0.0.1",
+                "listen_port": 2080
+            }
+        ],
+        "outbounds": [
+            {
+                "type": "selector",
+                "tag": "select",
+                "outbounds": ["auto", "direct", ...tags],
+                "default": "auto"
+            },
+            {
+                "type": "urltest",
+                "tag": "auto",
+                "outbounds": tags,
+                "url": "http://www.gstatic.com/generate_204",
+                "interval": "10m",
+                "tolerance": 50
             },
             ...out,
-            { tag: 'direct', type: 'direct' },
-            { tag: 'block', type: 'block' }
+            { "type": "direct", "tag": "direct" },
+            { "type": "block", "tag": "block" }
         ],
-        route: {
-            rules: [
-                { geoip: 'ir', outbound: 'direct' },
-                { geoip: 'private', outbound: 'direct' },
-                { geosite: 'category-ads-all', outbound: 'block' }
+        "route": {
+            "rules": [
+                { "action": "sniff" },
+                { "clash_mode": "Direct", "outbound": "direct" },
+                { "clash_mode": "Global", "outbound": "select" },
+                { "protocol": "dns", "action": "hijack-dns" },
+                {
+                    "rule_set": [
+                        "geoip-private",
+                        "geosite-private",
+                        "geosite-ir",
+                        "geoip-ir"
+                    ],
+                    "outbound": "direct"
+                },
+                {
+                    "rule_set": "geosite-ads",
+                    "action": "reject"
+                }
             ],
-            final: 'V2V-SELECT',
-            auto_detect_interface: true
-        },
-        experimental: {
-            cache_file: { enabled: true },
-            clash_api: { external_controller: '127.0.0.1:9090' }
+            "rule_set": [
+                {
+                    "type": "remote",
+                    "tag": "geosite-ads",
+                    "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/category-ads-all.srs",
+                    "download_detour": "direct"
+                },
+                {
+                    "type": "remote",
+                    "tag": "geosite-private",
+                    "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/private.srs",
+                    "download_detour": "direct"
+                },
+                {
+                    "type": "remote",
+                    "tag": "geosite-ir",
+                    "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/category-ir.srs",
+                    "download_detour": "direct"
+                },
+                {
+                    "type": "remote",
+                    "tag": "geoip-private",
+                    "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/private.srs",
+                    "download_detour": "direct"
+                },
+                {
+                    "type": "remote",
+                    "tag": "geoip-ir",
+                    "url": "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geoip/ir.srs",
+                    "download_detour": "direct"
+                }
+            ],
+            "final": "select",
+            "auto_detect_interface": true,
+            "default_domain_resolver": "local-dns"
         }
     }, null, 2);
 };
+
 
 const genClashForSingbox = (cfgs) => {
     const content = genClashForXray(cfgs);
@@ -652,4 +758,3 @@ export default {
         }
     }
 };
-
