@@ -708,13 +708,12 @@ const genClashSub = (cfgs) => {
   if (!prx.length) return null;
   const names = prx.map((x) => x.name);
 
-  let y = `mixed-port: 7890
-http-port: 7891
-socks-port: 7892
-ipv6: true
+  let y = `port: 7890
+socks-port: 7891
+http-port: 7892
 allow-lan: false
 mode: rule
-log-level: warning
+log-level: info
 disable-keep-alive: false
 keep-alive-idle: 10
 keep-alive-interval: 15
@@ -733,17 +732,18 @@ profile:
 dns:
   enable: true
   listen: 0.0.0.0:1053
-  ipv6: tru
+  ipv6: false
   respect-rules: true
   use-system-hosts: false
   nameserver:
-    - https://8.8.8.8/dns-query#⚪ REvil
-    - https://208.67.222.222/dns-query
-    - https://dns.alidns.com/dns-query
+    - 114.114.114.114#⚪ REvil
     - 223.5.5.5
-    - 8.8.8.8  
-    - 1.1.1.1 
-    - 119.29.29.29
+    - 8.8.8.8
+    - 9.9.9.9
+    - 1.1.1.1
+    - https://8.8.8.8/dns-query
+    - tls://dns.google:853
+    - https://dns.alidns.com/dns-query
   proxy-server-nameserver:
     - 8.8.8.8#DIRECT
   nameserver-policy:
@@ -819,7 +819,7 @@ proxies:
 
   y += `
 proxy-groups:
-  - name: ⚪ REvil
+  - name: ⚪ V2V
     type: select
     proxies:
       - 🟢 AUTO
@@ -830,9 +830,9 @@ proxy-groups:
   y += `
   - name: 🟢 AUTO
     type: url-test
-    url: https://www.gstatic.com/generate_204
-    interval: 180
-    tolerance: 50
+    url: http://clients3.google.com/generate_204
+    interval: 300
+    tolerance: 100
     proxies:
 `;
   for (const name of names) y += `      - "${name}"\n`;
@@ -904,7 +904,7 @@ rules:
   - RULE-SET,private-cidr,DIRECT,no-resolve
   - RULE-SET,ir,DIRECT
   - RULE-SET,ir-cidr,DIRECT,no-resolve
-  - MATCH,⚪ REvil
+  - MATCH,⚪ V2V
 ntp:
   enable: true
   server: time.apple.com
