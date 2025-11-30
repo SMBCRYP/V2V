@@ -1,3 +1,5 @@
+// @ts-ignore
+// @ts-nocheck
 import { connect } from "cloudflare:sockets";
 
 const TTL = 120 * 24 * 60 * 60;
@@ -7,7 +9,7 @@ const ORIGINS = [
   "https://v2v-data.s3-website.ir-thr-at1.arvanstorage.ir",
 ];
 
-const cors = (o) =>
+const cors = (/** @type {string} */ o) =>
   ORIGINS.includes(o)
     ? {
         "Access-Control-Allow-Origin": o,
@@ -16,12 +18,13 @@ const cors = (o) =>
         Vary: "Origin",
       }
     : { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
-const json = (d, s, h) =>
+
+const json = (/** @type {{ status?: string; signature?: string; features?: string[]; endpoints?: { xray: string; "xray-clash": string; singbox: string; "singbox-clash": string; }; error?: any; success?: boolean; id?: string; url?: string; total_configs?: number; expires_in_days?: number; stack?: any; }} */ d, /** @type {number} */ s, /** @type {Iterable<Iterable<string>> | Record<string, string> | { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; Vary: string; } | { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers"?: undefined; Vary?: undefined; }} */ h) =>
   new Response(JSON.stringify(d), {
     status: s,
     headers: { "Content-Type": "application/json", ...h },
   });
-const text = (t, c, h, f) =>
+const text = (/** @type {BodyInit} */ t, /** @type {string} */ c, /** @type {Iterable<Iterable<string>> | Record<string, string> | { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers": string; Vary: string; } | { "Access-Control-Allow-Origin": string; "Access-Control-Allow-Methods": string; "Access-Control-Allow-Headers"?: undefined; Vary?: undefined; }} */ h, /** @type {string} */ f) =>
   new Response(t, {
     status: 200,
     headers: {
@@ -40,7 +43,7 @@ const genV2VId = () => {
   return `v2v${timestamp}${random}`;
 };
 
-const uid = (p, s, i) =>
+const uid = (/** @type {string} */ p, /** @type {string} */ s, /** @type {number} */ i) =>
   `${p}${Math.abs((s + i).split("").reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0))
     .toString(36)
     .slice(0, 6)}`;
@@ -58,7 +61,7 @@ const b64e = (str) => {
   }
 };
 
-const b64d = (s) => {
+const b64d = (/** @type {string} */ s) => {
   try {
     return atob(s.replace(/-/g, "+").replace(/_/g, "/"));
   } catch {
@@ -66,14 +69,14 @@ const b64d = (s) => {
   }
 };
 
-const sanitize = (str) =>
+const sanitize = (/** @type {string} */ str) =>
   str
     ? String(str)
         .replace(/[^\x20-\x7E]/g, "")
         .trim()
     : "";
 
-const yamlScalar = (v) => {
+const yamlScalar = (/** @type {string | number} */ v) => {
   if (v === null || v === undefined) return "";
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   const s = String(v);
@@ -117,7 +120,7 @@ const dumpYamlField = (key, value, indent) => {
   return `${pad}${key}: ${yamlScalar(value)}\n`;
 };
 
-const parseVmess = (cfg) => {
+const parseVmess = (/** @type {string} */ cfg) => {
   try {
     if (!cfg?.startsWith("vmess://")) return null;
     const d = b64d(cfg.slice(8));
@@ -333,7 +336,10 @@ const parseTuic = (cfg) => {
   }
 };
 
-const genXraySubscription = (cfgs) => {
+/**
+ * @param {any} cfgs
+ */
+function genXraySubscription(cfgs) {
   const valid = [];
   const seen = new Set();
   for (const cfg of cfgs) {
@@ -344,10 +350,10 @@ const genXraySubscription = (cfgs) => {
         seen.add(k);
         valid.push(cfg);
       }
-    } catch {}
+    } catch { }
   }
   return b64e(valid.join("\n"));
-};
+}
 
 const genSingboxSubscription = (cfgs) => {
   const out = [];
@@ -865,7 +871,6 @@ proxies:
 `;
 
   for (const x of prx) {
-  for (const x of prx) {
     y += `  - name: ${yamlScalar(x.name)}\n`;
     y += `    type: ${yamlScalar(x.type)}\n`;
     y += `    server: ${yamlScalar(x.server)}\n`;
@@ -980,7 +985,12 @@ ntp:
 };
 
 export default {
-  async fetch(req, env) {
+  /**
+   * @param {{url: string | URL;headers: {get: (arg0: string) => any;};method: string;json: () => PromiseLike<{configs: any;format: any;}> | {configs: any;format: any;};}} req
+   * @param {{v2v_kv: {put: (arg0: string, arg1: string, arg2: {expirationTtl: number;}) => any;get: (arg0: string, arg1: {type: string;}) => any;};}} env
+   * @param {any} _ctx
+   */
+  async fetch(req, env, _ctx) {
     const u = new URL(req.url);
     const o = req.headers.get("Origin");
     const h = cors(o);
@@ -992,7 +1002,7 @@ export default {
             status: "V2V Pro v13 - Complete & Fast",
             signature: "V2V Signature System Active",
             features: [
-              "Client-Side Real Testing",
+              "Client-Side Testing",
               "All Protocols Support (VMess, VLESS, Trojan, SS, Hy2, TUIC)",
               "Smart Deduplication",
               "Zero Errors Guaranteed",
