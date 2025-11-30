@@ -593,7 +593,25 @@ def balance(tested: List[Tuple[str, int, str]], protocols: Set[str]) -> List[str
                 selected.append(cfg)
 
     return selected
-
+    
+    
+def yaml_scalar(val):
+    if isinstance(val, bool):
+        return "true" if val else "false"
+    if isinstance(val, (int, float)):
+        return str(val)
+    s = str(val)
+    if (
+        not s
+        or s[0] in "@&*?!|>'\"%`"
+        or s[0].isspace()
+        or ": " in s
+        or "\n" in s
+        or "\r" in s
+    ):
+        s = s.replace('"', '\\"')
+        return f'"{s}"'
+    return s
 
 def gen_clash(cfgs: List[str]) -> Optional[str]:
     """Generate Clash Meta Config based on the Golden Template of REvil"""
@@ -827,18 +845,16 @@ sniffer:
         y += "    udp: true\n"
         y += "    skip-cert-verify: true\n"
 
-        for key, val in p.items():
-            if key not in ["name", "type", "server", "port", "udp", "skip-cert-verify"]:
-                if isinstance(val, bool):
-                    y += f"    {key}: {str(val).lower()}\n"
-                elif isinstance(val, dict):
-                    y += f"    {key}:\n"
-                    for k, v in val.items():
-                        y += f"      {k}: {v}\n"
-                elif isinstance(val, list):
-                    y += f"    {key}: [{', '.join(val)}]\n"
-                else:
-                    y += f"    {key}: {val}\n"
+    for key, val in p.items():
+        if key not in ["name", "type", "server", "port", "udp", "skip-cert-verify"]:
+            if isinstance(val, dict):
+                y += f"    {key}:\n"
+                for k, v in val.items():
+                    y += f"      {k}: {yaml_scalar(v)}\n"
+            elif isinstance(val, list):
+                y += f"    {key}: [{', '.join(yaml_scalar(v) for v in val)}]\n"
+            else:
+                y += f"    {key}: {yaml_scalar(val)}\n"
 
     y += "\nproxy-groups:\n"
     y += "  - name: ⚪ V2V\n"

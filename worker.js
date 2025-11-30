@@ -72,6 +72,31 @@ const sanitize = (str) =>
         .replace(/[^\x20-\x7E]/g, "")
         .trim()
     : "";
+    
+const yamlScalar = (v) => {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  const s = String(v);
+  if (
+    s === "" ||
+    s[0] === "@" ||
+    s[0] === "&" ||
+    s[0] === "*" ||
+    s[0] === "!" ||
+    s[0] === "|" ||
+    s[0] === ">" ||
+    s[0] === "%" ||
+    s[0] === `"` ||
+    s[0] === "'" ||
+    /\s/.test(s[0]) ||
+    s.includes(": ") ||
+    s.includes("\n") ||
+    s.includes("\r")
+  ) {
+    return `"${s.replace(/"/g, '\\"')}"`;
+  }
+  return s;
+};
 
 const sanitizePath = (p) => {
   let path = sanitize(p || "/");
@@ -856,16 +881,19 @@ proxies:
     y += `    port: ${x.port}\n`;
     y += `    udp: true\n`;
     y += `    skip-cert-verify: true\n`;
-
+  
     for (const [key, value] of Object.entries(x)) {
       if (["name", "type", "server", "port", "udp", "skip-cert-verify"].includes(key)) continue;
-      if (typeof value === "object" && !Array.isArray(value)) {
+      if (value && typeof value === "object" && !Array.isArray(value)) {
         y += `    ${key}:\n`;
-        y += dumpYamlObject(value, 6);
+        for (const [k, v] of Object.entries(value)) {
+          y += `      ${k}: ${yamlScalar(v)}\n`;
+        }
       } else if (Array.isArray(value)) {
-        y += `    ${key}: [${value.join(", ")}]\n`;
+        const arr = value.map((v) => yamlScalar(v)).join(", ");
+        y += `    ${key}: [${arr}]\n`;
       } else {
-        y += `    ${key}: ${value}\n`;
+        y += `    ${key}: ${yamlScalar(value)}\n`;
       }
     }
   }
