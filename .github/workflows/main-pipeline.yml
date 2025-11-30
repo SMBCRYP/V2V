@@ -4,13 +4,13 @@ on:
   schedule:
     - cron: '0 */6 * * *'
   push:
-#    branches:
-#      - main
-#    paths:
-#      - 'scraper.py'
-#      - 'worker.js'
-#      - 'index.html'
-#      - 'index.js'
+    branches:
+      - main
+    paths:
+      - 'scraper.py'
+      - 'worker.js'
+      - 'index.html'
+      - 'index.js'
   workflow_dispatch:
 
 permissions:
