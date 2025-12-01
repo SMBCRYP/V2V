@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const totalConfigs = Object.values(coreData).reduce((sum, arr) => sum + arr.length, 0);
-        const realTestButton = `<button class="test-button" style="background: linear-gradient(135deg, #c31432, #240b36); margin-bottom: 15px;" onclick="window.startRealPingTest('${coreName}')" id="real-test-${coreName}-btn">🌐 تست واقعی از شبکه شما (${totalConfigs} کانفیگ)</button>`;
+        const realTestButton = `<button class="test-button" style="background: linear-gradient(135deg, #c31432, #240b36); margin-bottom: 15px;" onclick="window.startRealPingTest('${coreName}')" id="real-test-${coreName}-btn">🌐 تست از شبکه شما (${totalConfigs} کانفیگ)</button>`;
         const copySelectedButton = `<button class="action-btn-wide" onclick="window.copySelectedConfigs('${coreName}')">📋 کپی موارد انتخابی</button>`;
         let contentHtml = `<div class="action-bar">${realTestButton}${copySelectedButton}</div>`;
         if (coreName === 'xray') {
