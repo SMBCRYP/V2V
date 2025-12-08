@@ -1,6 +1,5 @@
 {
   "static": [
-    # Shadowsocks (SS)
     "https://raw.githubusercontent.com/NiREvil/vless/refs/heads/main/sub/SSTime",
     "https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.txt",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/Splitted-By-Protocol/ss.txt",
@@ -14,7 +13,6 @@
     "https://raw.githubusercontent.com/nscl5/4/refs/heads/main/Splitted-By-Protocol/ss.txt",
     "https://raw.githubusercontent.com/10ium/V2Hub3/refs/heads/main/Split/Normal/shadowsocks",
 
-    # Hysteria / Hy2 / Tuic
     "https://raw.githubusercontent.com/10ium/V2ray-Config/refs/heads/main/Splitted-By-Protocol/hysteria2.txt",
     "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Hysteria2.txt",
     "https://raw.githubusercontent.com/mshojaei77/v2rayAuto/refs/heads/main/subs/hy2",
@@ -25,7 +23,6 @@
     "https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/normal/tuic",
     "https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/normal/hy2",
 
-    # Vmess
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/Splitted-By-Protocol/vmess.txt",
     "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/refs/heads/main/sub/vmess.txt",
@@ -34,13 +31,11 @@
     "https://raw.githubusercontent.com/10ium/V2Hub3/refs/heads/main/Split/Normal/vmess",
     "https://raw.githubusercontent.com/youfoundamin/V2rayCollector/refs/heads/main/vmess_iran.txt",
     "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/vmess_configs.txt",
-    
-    # Reality
+
     "https://raw.githubusercontent.com/10ium/V2Hub3/refs/heads/main/Split/Normal/reality",
     "https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/normal/reality",
     "https://raw.githubusercontent.com/Mosifree/-FREE2CONFIG/refs/heads/main/Reality",
 
-    # Vless
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/Splitted-By-Protocol/vless.txt",
     "https://raw.githubusercontent.com/hamedcode/port-based-v2ray-configs/refs/heads/main/sub/vless.txt",
@@ -52,7 +47,6 @@
     "https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/normal/vless",
     "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Vless.txt",
 
-    # Trojan
     "https://trojanvmess.pages.dev/cmcm?b64#cmcm?b64",
     "https://raw.githubusercontent.com/Epodonios/v2ray-configs/refs/heads/main/Splitted-By-Protocol/trojan.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/Splitted-By-Protocol/trojan.txt",
@@ -62,7 +56,6 @@
     "https://raw.githubusercontent.com/10ium/V2Hub3/refs/heads/main/Split/Normal/trojan",
     "https://raw.githubusercontent.com/10ium/ScrapeAndCategorize/refs/heads/main/output_configs/Trojan.txt",
 
-    # Mixed / All-in-one
     "https://raw.githubusercontent.com/Danialsamadi/v2go/refs/heads/main/AllConfigsSub.txt",
     "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt",
     "https://raw.githubusercontent.com/nscl5/5/refs/heads/main/configs/all.txt",
@@ -91,10 +84,11 @@
     "https://raw.githubusercontent.com/darkvpnapp/CloudflarePlus/main/index.html",
     "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt",
 
-    # Base64 / Sheets
     "https://shadowmere.xyz/api/b64sub",
     "https://9527521.xyz/config/POZKe87RWQhyDFJC",
     "https://azadnet05.pages.dev/sub/4d794980-54c0-4fcb-8def-c2beaecadbad#EN-Normal",
     "https://demo.wuqb2i4f.workers.dev/20cf4d65-f3ac-4266-8148-76de9e1eac6e/configs?sub=aiboboxx",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/Base64/Sub1_base64.txt",
     "https://raw.githubusercontent.com/barry-far/V2ray-Config/refs/heads/main/Base64/Sub2_base64.txt"
+  ]
+}
