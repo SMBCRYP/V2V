@@ -867,7 +867,7 @@ sniffer:
 
     y += "\n  - name: 🟢 AUTO\n"
     y += "    type: url-test\n"
-    y += "    url: http://clients3.google.com/generate_204\n"
+    y += "    url: https://www.gstatic.com/generate_204\n"
     y += "    interval: 300\n"
     y += "    tolerance: 100\n"
     y += "    lazy: true\n"
