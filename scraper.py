@@ -24,7 +24,7 @@ def timeout_handler(signum, frame):
 signal.signal(signal.SIGALRM, timeout_handler)
 signal.alarm(48 * 60)
 
-print("🚀 V2V Professional Scraper v10.0 - TUIC OPTIMIZED")
+print("🚀 V2V Professional Scraper v10.0 - TUIC & DPI OPTIMIZED")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCES_FILE = os.path.join(BASE_DIR, "sources.json")
@@ -446,12 +446,13 @@ def fetch_github(pat: str, limit: int) -> Set[str]:
 
 
 def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
-    """Advanced connection test with protocol-specific handling"""
+    """Advanced connection test with protocol-specific handling & DPI validation"""
     try:
         u = urlparse(cfg)
         p = norm_proto(u.scheme)
 
         host, port, tls, sni = None, None, False, None
+        is_reality = False
 
         if p == "vmess":
             try:
@@ -487,6 +488,9 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
             port = int(u.port or 0)
             q = parse_qs(u.query)
             tls = p == "trojan" or q.get("security", [""])[0] == "tls"
+            if q.get("security", [""])[0] == "reality":
+                is_reality = True
+                tls = True
             sni = q.get("sni", [host])[0]
 
         elif p == "ss":
@@ -502,24 +506,35 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
         if not host or port <= 0 or port > 65535:
             return None
 
+        # 🛑 DPI Filtering Block: رد کردن سرورهایی که با فیک-دامنه‌های تابلوی فیلتر شده مچ شده‌اند
+        if sni:
+            blocked_sni_keywords = ["p0rn", "gambling", "israel", "test", "pornhub", "xvideos"]
+            if any(kw in sni.lower() for kw in blocked_sni_keywords):
+                return None
+
         start = time.monotonic()
 
+        # 🧪 ۱. راستی‌آزمایی پروتکل‌های متکی بر UDP (TUIC / Hysteria 2)
         if p in ["tuic", "hy2"]:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.settimeout(UDP_TIMEOUT)
                 sock.connect((host, port))
 
+                # ارسال پکت زنده برای ارزیابی مسدودسازی‌های لایه ۴ سیستم DPI
                 if p == "tuic":
-                    sock.send(b"\x00\x00\x00\x01" + b"\x00" * 12)
+                    sock.send(b"\x01\x00\x00\x00" + b"\x00" * 12)
                 else:
-                    sock.send(b"\x00" * 16)
+                    sock.send(b"\x00\x02\x00\x00" + b"\x00" * 12)
 
+                # چک کردن سیستم های مسدودکننده هوشمند UDP-Drop ایران
                 try:
                     sock.settimeout(2.0)
                     sock.recv(64)
                 except socket.timeout:
-                    pass
+                    # در صورتی که پاسخ مطلقاً برگشتی نداشته باشد، پورت در شبکه ایران بلاک فیلتر است
+                    sock.close()
+                    return None
                 except:
                     pass
 
@@ -527,28 +542,34 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
             except:
                 return None
 
+        # 🧪 ۲. راستی‌آزمایی پروتکل‌های متکی بر TCP (Vless, Vmess, Trojan, Shadowsocks)
         else:
             try:
                 sock = socket.create_connection((host, port), timeout=TCP_TIMEOUT)
-
-                is_reality = False
-                if p == "vless" and "security=reality" in cfg:
-                    is_reality = True
 
                 if tls and not is_reality:
                     ctx = ssl.create_default_context()
                     ctx.check_hostname = False
                     ctx.verify_mode = ssl.CERT_NONE
+                    
+                    # سخت‌گیری روی استانداردهای کلاینت کروم/مرورگر مدرن برای عبور از الگوریتم شناسایی کلاینت‌های فیک (JA3/JA4)
                     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+                    ctx.maximum_version = ssl.TLSVersion.TLSv1_3
+                    ctx.set_ciphers('ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:CHACHA20-POLY1305')
 
                     try:
                         ssock = ctx.wrap_socket(sock, server_hostname=sni or host)
                         ssock.do_handshake()
+                        
+                        # ارسال ترافیک فیک خفیف پسا-هندشیک جهت اطمینان از عدم قطع شدن توسط سیستم DPI پس از لایه اول ارتباط
+                        ssock.send(b"\x16\x03\x01\x00\x01\x01")
                         ssock.close()
-                    except ssl.SSLError:
+                    except:
                         sock.close()
                         return None
                 else:
+                    if p == "ss":
+                        sock.send(b"\x05\x01\x00")
                     sock.close()
             except:
                 return None
