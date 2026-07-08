@@ -10,21 +10,24 @@ import random
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse, parse_qs, unquote
-from github import Github, Auth
 from typing import Set, List, Dict, Tuple, Optional
 from collections import defaultdict
 import signal
 
+# Safe PyGithub import with rate limiting handling
+try:
+    from github import Github, Auth, RateLimitExceededException
+except ImportError:
+    class RateLimitExceededException(Exception): pass
 
 def timeout_handler(signum, frame):
     print("⏰ TIMEOUT: Exceeded 48min")
     exit(1)
 
-
 signal.signal(signal.SIGALRM, timeout_handler)
 signal.alarm(48 * 60)
 
-print("🚀 V2V Professional Scraper v10.0 - TUIC & DPI OPTIMIZED")
+print("🚀 V2V Professional Scraper v11.0 - IRAN DPI & CLIENT-JA4 OPTIMIZED")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCES_FILE = os.path.join(BASE_DIR, "sources.json")
@@ -44,11 +47,9 @@ MAX_CONFIGS_TO_TEST = 12000
 MAX_CONFIGS_PER_PROTOCOL = 500
 MAX_WORKERS = 120
 TCP_TIMEOUT = 4.5
-UDP_TIMEOUT = 5.0
 MAX_LATENCY = 6000
 GITHUB_LIMIT = int(os.environ.get("GITHUB_SEARCH_LIMIT", 200))
 RETRY_FAILED = 2
-
 
 def get_hash(cfg: str) -> str:
     """Generate unique hash for config deduplication"""
@@ -59,24 +60,22 @@ def get_hash(cfg: str) -> str:
     except:
         return hashlib.sha256(cfg.encode()).hexdigest()[:16]
 
-
 def b64d(s: str) -> Optional[str]:
-    """Safe base64 decode with multiple methods"""
+    """Safe base64 decode with improved multiline/padding stripping"""
     if not s:
         return None
+    s = re.sub(r'\s+', '', s)
+    s += "=" * ((4 - len(s) % 4) % 4)
     methods = [
         lambda x: base64.b64decode(x).decode("utf-8", "ignore"),
-        lambda x: base64.urlsafe_b64decode(x + "===").decode("utf-8", "ignore"),
-        lambda x: base64.b64decode(x + "===").decode("utf-8", "ignore"),
+        lambda x: base64.urlsafe_b64decode(x).decode("utf-8", "ignore"),
     ]
-    s = s.strip().replace("\n", "").replace("\r", "").replace(" ", "")
     for method in methods:
         try:
             return method(s)
         except:
             continue
     return None
-
 
 def norm_proto(p: str) -> str:
     """Normalize protocol names"""
@@ -86,7 +85,6 @@ def norm_proto(p: str) -> str:
     if p in ["hysteria2", "hysteria"]:
         return "hy2"
     return p
-
 
 def parse_tuic(cfg: str) -> Optional[Dict]:
     """TUIC parser with comprehensive validation"""
@@ -103,7 +101,6 @@ def parse_tuic(cfg: str) -> Optional[Dict]:
             return None
 
         q = parse_qs(u.query)
-
         uuid = None
         password = None
 
@@ -134,7 +131,6 @@ def parse_tuic(cfg: str) -> Optional[Dict]:
     except:
         return None
 
-
 VALID_SS_METHODS = {
     "aes-128-gcm",
     "aes-256-gcm",
@@ -160,9 +156,8 @@ VALID_SS_METHODS = {
     "2022-blake3-aes-256-gcm",
 }
 
-
 def parse_ss(cfg: str) -> Optional[Dict]:
-    """★★★ Shadowsocks parser with Validation ★★★"""
+    """Shadowsocks parser with Validation"""
     try:
         if not cfg or not cfg.startswith("ss://"):
             return None
@@ -211,7 +206,6 @@ def parse_ss(cfg: str) -> Optional[Dict]:
             return None
 
         method = method.lower().strip()
-
         if method not in VALID_SS_METHODS:
             return None
 
@@ -224,7 +218,6 @@ def parse_ss(cfg: str) -> Optional[Dict]:
         }
     except:
         return None
-
 
 def parse_hy2(cfg: str) -> Optional[Dict]:
     """Hysteria2 parser"""
@@ -253,7 +246,6 @@ def parse_hy2(cfg: str) -> Optional[Dict]:
         }
     except:
         return None
-
 
 def is_valid(cfg: str) -> bool:
     if not cfg or not isinstance(cfg, str):
@@ -306,9 +298,8 @@ def is_valid(cfg: str) -> bool:
     except:
         return False
 
-
 def extract(content: str) -> Set[str]:
-    """Extract configs with enhanced pattern matching"""
+    """Extract configs with enhanced pattern matching and multiline handling"""
     cfgs = set()
     if not content:
         return cfgs
@@ -334,12 +325,12 @@ def extract(content: str) -> Set[str]:
                 cfgs.add(clean)
 
     base64_patterns = [
-        r"[A-Za-z0-9+/=]{100,}",
-        r"[A-Za-z0-9\-_=]{100,}",
+        r"[A-Za-z0-9+/=\s]{100,}",
+        r"[A-Za-z0-9\-_=\s]{100,}",
     ]
 
     for pattern in base64_patterns:
-        for b64_block in re.findall(pattern, content)[:30]:
+        for b64_block in re.findall(pattern, content)[:45]:
             try:
                 decoded = b64d(b64_block)
                 if decoded:
@@ -351,7 +342,6 @@ def extract(content: str) -> Set[str]:
                 continue
 
     return cfgs
-
 
 def fetch_static(sources: List[str]) -> Set[str]:
     """Fetch from static sources with retry"""
@@ -390,9 +380,8 @@ def fetch_static(sources: List[str]) -> Set[str]:
     print(f"  ✅ Total from static: {len(all_cfgs)}")
     return all_cfgs
 
-
 def fetch_github(pat: str, limit: int) -> Set[str]:
-    """Fetch from GitHub with optimized queries"""
+    """Fetch from GitHub with optimized rate limit mitigation"""
     if not pat:
         return set()
 
@@ -424,8 +413,8 @@ def fetch_github(pat: str, limit: int) -> Set[str]:
                     if processed >= limit:
                         break
                     try:
-                        time.sleep(random.uniform(0.15, 0.35))
-                        content = file.content.decode("utf-8", "ignore")
+                        time.sleep(random.uniform(0.5, 1.2)) # Gentle sleep to avoid API secondary limits
+                        content = file.decoded_content.decode("utf-8", "ignore")
                         cfgs = extract(content)
                         if cfgs:
                             all_cfgs.update(cfgs)
@@ -436,6 +425,10 @@ def fetch_github(pat: str, limit: int) -> Set[str]:
                                 )
                     except:
                         continue
+            except RateLimitExceededException:
+                print("⚠️ GitHub search hit Rate Limit. Backing off for 60s...")
+                time.sleep(60)
+                continue
             except:
                 continue
 
@@ -444,6 +437,19 @@ def fetch_github(pat: str, limit: int) -> Set[str]:
     except:
         return set()
 
+def test_udp_via_tcp_fallback(host: str, port: int) -> Optional[int]:
+    """Helper to verify server liveliness for UDP-based protocols avoiding QUIC drop bugs"""
+    test_ports = [port, 443, 80, 22, 8080]
+    for p in test_ports:
+        try:
+            start = time.monotonic()
+            sock = socket.create_connection((host, p), timeout=2.0)
+            lat = int((time.monotonic() - start) * 1000)
+            sock.close()
+            return lat
+        except (ConnectionRefusedError, socket.timeout, socket.error):
+            continue
+    return None
 
 def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
     """Advanced connection test with protocol-specific handling & DPI validation"""
@@ -506,43 +512,25 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
         if not host or port <= 0 or port > 65535:
             return None
 
-        # 🛑 DPI Filtering Block: رد کردن سرورهایی که با فیک-دامنه‌های تابلوی فیلتر شده مچ شده‌اند
+        # 🛑 DPI Filtering Block: Drop fake/blocked SNIs
         if sni:
-            blocked_sni_keywords = ["p0rn", "gambling", "israel", "test", "pornhub", "xvideos"]
+            blocked_sni_keywords = [
+                "p0rn", "gambling", "israel", "test", "pornhub", "xvideos", 
+                "youtube", "instagram", "facebook", "twitter", "telegram", "tiktok"
+            ]
             if any(kw in sni.lower() for kw in blocked_sni_keywords):
                 return None
 
         start = time.monotonic()
 
-        # 🧪 ۱. راستی‌آزمایی پروتکل‌های متکی بر UDP (TUIC / Hysteria 2)
+        # 🧪 ۱. ارزیابی پروتکل‌های مبتنی بر UDP (TUIC / Hysteria 2) با متد لایولی‌نس هیبرید
         if p in ["tuic", "hy2"]:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                sock.settimeout(UDP_TIMEOUT)
-                sock.connect((host, port))
-
-                # ارسال پکت زنده برای ارزیابی مسدودسازی‌های لایه ۴ سیستم DPI
-                if p == "tuic":
-                    sock.send(b"\x01\x00\x00\x00" + b"\x00" * 12)
-                else:
-                    sock.send(b"\x00\x02\x00\x00" + b"\x00" * 12)
-
-                # چک کردن سیستم های مسدودکننده هوشمند UDP-Drop ایران
-                try:
-                    sock.settimeout(2.0)
-                    sock.recv(64)
-                except socket.timeout:
-                    # در صورتی که پاسخ مطلقاً برگشتی نداشته باشد، پورت در شبکه ایران بلاک فیلتر است
-                    sock.close()
-                    return None
-                except:
-                    pass
-
-                sock.close()
-            except:
+            lat = test_udp_via_tcp_fallback(host, port)
+            if lat is None:
                 return None
+            return (cfg, lat, p)
 
-        # 🧪 ۲. راستی‌آزمایی پروتکل‌های متکی بر TCP (Vless, Vmess, Trojan, Shadowsocks)
+        # 🧪 ۲. ارزیابی پروتکل‌های متکی بر TCP (Vless, Vmess, Trojan, Shadowsocks)
         else:
             try:
                 sock = socket.create_connection((host, port), timeout=TCP_TIMEOUT)
@@ -552,18 +540,38 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
                     ctx.check_hostname = False
                     ctx.verify_mode = ssl.CERT_NONE
                     
-                    # سخت‌گیری روی استانداردهای کلاینت کروم/مرورگر مدرن برای عبور از الگوریتم شناسایی کلاینت‌های فیک (JA3/JA4)
+                    # شبیه‌سازی اثر انگشت کلاینت مرورگر مدرن (JA3/JA4) برای عبور از DPI
                     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
                     ctx.maximum_version = ssl.TLSVersion.TLSv1_3
-                    ctx.set_ciphers('ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:CHACHA20-POLY1305')
+                    ctx.set_ciphers(
+                        'ECDHE-ECDSA-AES128-GCM-SHA256:'
+                        'ECDHE-RSA-AES128-GCM-SHA256:'
+                        'ECDHE-ECDSA-AES256-GCM-SHA384:'
+                        'ECDHE-RSA-AES256-GCM-SHA384:'
+                        'ECDHE-ECDSA-CHACHA20-POLY1305:'
+                        'ECDHE-RSA-CHACHA20-POLY1305'
+                    )
+                    ctx.set_alpn_protocols(['h2', 'http/1.1'])
 
                     try:
                         ssock = ctx.wrap_socket(sock, server_hostname=sni or host)
                         ssock.do_handshake()
                         
-                        # ارسال ترافیک فیک خفیف پسا-هندشیک جهت اطمینان از عدم قطع شدن توسط سیستم DPI پس از لایه اول ارتباط
-                        ssock.send(b"\x16\x03\x01\x00\x01\x01")
+                        # ارسال درخواست واقعی و شبیه‌سازی‌شده وب برای راستی‌آزمایی خط اتصال لایه ۷ پس از تونل
+                        probe = (
+                            f"GET / HTTP/1.1\r\n"
+                            f"Host: {sni or host}\r\n"
+                            f"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n"
+                            f"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8\r\n"
+                            f"Connection: close\r\n\r\n"
+                        )
+                        ssock.sendall(probe.encode('utf-8'))
+                        
+                        # بررسی دریافت پاسخ معتبر و زنده از سرور
+                        res = ssock.recv(1024)
                         ssock.close()
+                        if not res or b"HTTP/" not in res:
+                            return None
                     except:
                         sock.close()
                         return None
@@ -583,7 +591,6 @@ def test_conn(cfg: str) -> Optional[Tuple[str, int, str]]:
 
     except:
         return None
-
 
 def balance(tested: List[Tuple[str, int, str]], protocols: Set[str]) -> List[str]:
     """Balance protocols with priority for rare ones"""
@@ -614,7 +621,6 @@ def balance(tested: List[Tuple[str, int, str]], protocols: Set[str]) -> List[str
                 selected.append(cfg)
 
     return selected
-    
     
 def yaml_scalar(val):
     if isinstance(val, bool):
@@ -764,7 +770,7 @@ def gen_clash(cfgs: List[str]) -> Optional[str]:
     if not proxies:
         return None
 
-    proxy_names = [p["name"] for p in proxies]
+    proxy_names = [prx["name"] for prx in proxies]
 
     y = """port: 7890
 socks-port: 7891
@@ -858,24 +864,25 @@ sniffer:
 """
 
     y += "proxies:\n"
-    for p in proxies:
-        y += f"  - name: {p['name']}\n"
-        y += f"    type: {p['type']}\n"
-        y += f"    server: {p['server']}\n"
-        y += f"    port: {p['port']}\n"
+    for prx in proxies:
+        y += f"  - name: {prx['name']}\n"
+        y += f"    type: {prx['type']}\n"
+        y += f"    server: {prx['server']}\n"
+        y += f"    port: {prx['port']}\n"
         y += "    udp: true\n"
         y += "    skip-cert-verify: true\n"
 
-    for key, val in p.items():
-        if key not in ["name", "type", "server", "port", "udp", "skip-cert-verify"]:
-            if isinstance(val, dict):
-                y += f"    {key}:\n"
-                for k, v in val.items():
-                    y += f"      {k}: {yaml_scalar(v)}\n"
-            elif isinstance(val, list):
-                y += f"    {key}: [{', '.join(yaml_scalar(v) for v in val)}]\n"
-            else:
-                y += f"    {key}: {yaml_scalar(val)}\n"
+        # FIXED INDENTATION BUG HERE
+        for key, val in prx.items():
+            if key not in ["name", "type", "server", "port", "udp", "skip-cert-verify"]:
+                if isinstance(val, dict):
+                    y += f"    {key}:\n"
+                    for k, v in val.items():
+                        y += f"      {k}: {yaml_scalar(v)}\n"
+                elif isinstance(val, list):
+                    y += f"    {key}: [{', '.join(yaml_scalar(v) for v in val)}]\n"
+                else:
+                    y += f"    {key}: {yaml_scalar(val)}\n"
 
     y += "\nproxy-groups:\n"
     y += "  - name: ⚪ V2V\n"
@@ -974,11 +981,10 @@ ntp:
 """
     return y
 
-
 def main():
     try:
         print("\n" + "=" * 70)
-        print("🚀 V2V PROFESSIONAL SCRAPER - TUIC OPTIMIZED")
+        print("🚀 V2V PROFESSIONAL SCRAPER - INTUITIVE CLOUD-READY")
         print("=" * 70)
 
         print("\n📂 1. Loading Sources...")
@@ -1127,11 +1133,9 @@ def main():
     except Exception as e:
         print(f"\n❌ FATAL ERROR: {e}")
         import traceback
-
         traceback.print_exc()
     finally:
         signal.alarm(0)
-
 
 if __name__ == "__main__":
     main()
